@@ -76,7 +76,7 @@ def create_complete_dataframe(original_data: Union[pd.DataFrame, str]) -> pd.Dat
     extended_df = read_data(original_data)
 
     # add speed to the data: frame rate of 16Hz, compute space between the current position and the next one and divide by 1/16
-    add_speeds(extended_df)
+    extended_df = add_speeds(extended_df)
 
     # add mean spacing of each pedestrian to the data
     pass
