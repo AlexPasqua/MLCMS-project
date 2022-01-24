@@ -80,7 +80,8 @@ def add_mean_spacings(data: Union[pd.DataFrame, str], number_of_neighbors: int =
     data = read_data(data)
 
     # find the number_of_neighbors nearest neighbors
-    mean_spacings_data = []
+    mean_spacings_data = data[['ID', 'FRAME']]
+    mean_spacings_data = mean_spacings_data.assign(MEAN_SPACING=lambda x: None)
     # iterate for each frame
     frame_numbers = data['FRAME'].unique()
     for frame in frame_numbers:
@@ -99,20 +100,16 @@ def add_mean_spacings(data: Union[pd.DataFrame, str], number_of_neighbors: int =
                 pos1 = curr_frame_data[curr_frame_data['ID'] == curr_id][['X', 'Y']].to_numpy()
                 pos2 = curr_frame_data[curr_frame_data['ID'] == neighbor_id][['X', 'Y']].to_numpy()
                 dist = np.linalg.norm(pos1 - pos2)
-                assert dist > -math.inf
                 if dist > min(knn_dists):
                     knn_dists[np.argmin(knn_dists)] = dist
 
             # compute the mean distancing
-            knn_dists = knn_dists[knn_dists != -math.inf]
+            knn_dists = knn_dists[knn_dists != -math.inf]   # remove eventual -inf values
             mean_spacing = np.mean(knn_dists)
-            mean_spacings_data.append((curr_id, frame, mean_spacing))
+            mean_spacings_data.loc[(mean_spacings_data['ID'] == curr_id) & (mean_spacings_data['FRAME'] == frame), 'MEAN_SPACING'] = mean_spacing
 
-    # save the mean spacings data into the dataframe as a new column
-    data.sort_values(by=['ID', 'FRAME'], axis=0, inplace=True)
-    mean_spacings_data = sorted(mean_spacings_data, key=lambda x: (x[0], x[1]))  # order first by pedestrian id and the by frame number
-    mean_spacings_data = [mean_spacings_data[i][2] for i in range(len(mean_spacings_data))]
-    data['MEAN_SPACING'] = mean_spacings_data
+    # merge the 2 dataframes, having the effect of adding a column for the mean spacing to the data
+    data = data.merge(mean_spacings_data, how='inner', on=['ID', 'FRAME'])
     return data
 
 
@@ -134,4 +131,5 @@ def create_complete_dataframe(original_data: Union[pd.DataFrame, str]) -> pd.Dat
 
 
 if __name__ == '__main__':
-    add_mean_spacings("../data/Pedestrian_Trajectories/Corridor_Data/ug-180-015.txt")
+    data = add_mean_spacings("../data/Pedestrian_Trajectories/Corridor_Data/ug-180-015.txt")
+    print(data.head())
