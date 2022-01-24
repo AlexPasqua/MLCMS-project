@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import math
 from typing import Union
+from sklearn.preprocessing import MinMaxScaler
 
 
 def read_data(path: Union[pd.DataFrame, str]) -> pd.DataFrame:
@@ -16,6 +17,12 @@ def read_data(path: Union[pd.DataFrame, str]) -> pd.DataFrame:
     # otherwise read the data and return the dataframe
     col_names = ["ID", "FRAME", "X", "Y", "Z"]
     data = pd.read_csv(path, sep=" ", header=None, names=col_names)
+    # scale the coordinates between 0 and 1
+    scaler = MinMaxScaler()
+    data['X'] = scaler.fit_transform(np.expand_dims(data['X'], 1))
+    data['Y'] = scaler.fit_transform(np.expand_dims(data['Y'], 1))
+    # drop Z coordinate
+    data.drop(labels='Z', inplace=True, axis=1)
     return data
 
 
@@ -131,5 +138,6 @@ def create_complete_dataframe(original_data: Union[pd.DataFrame, str]) -> pd.Dat
 
 
 if __name__ == '__main__':
-    data = add_mean_spacings("../data/Pedestrian_Trajectories/Corridor_Data/ug-180-015.txt")
-    print(data.head())
+    # data = add_mean_spacings("../data/Pedestrian_Trajectories/Corridor_Data/ug-180-015.txt")
+    data = read_data("../data/Pedestrian_Trajectories/Corridor_Data/ug-180-015.txt")
+    print(data.describe())
