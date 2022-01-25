@@ -19,11 +19,14 @@ def read_data(path: Union[pd.DataFrame, str]) -> pd.DataFrame:
     col_names = ["ID", "FRAME", "X", "Y", "Z"]
     data = pd.read_csv(path, sep=" ", header=None, names=col_names)
     # scale the coordinates between 0 and 1
-    scaler = MinMaxScaler()
-    data['X'] = scaler.fit_transform(np.expand_dims(data['X'], 1))
-    data['Y'] = scaler.fit_transform(np.expand_dims(data['Y'], 1))
+    # scaler = MinMaxScaler()
+    # data['X'] = scaler.fit_transform(np.expand_dims(data['X'], 1))
+    # data['Y'] = scaler.fit_transform(np.expand_dims(data['Y'], 1))
     # drop Z coordinate
     data.drop(labels='Z', inplace=True, axis=1)
+    # scale X and Y
+    data['X'] = data['X'] / 100
+    data['Y'] = data['Y'] / 100
     return data
 
 
@@ -51,7 +54,7 @@ def add_speeds(data: Union[pd.DataFrame, str], frame_rate: float = 16) -> pd.Dat
             if data.iloc[index]['ID'] == data.iloc[next_idx]['ID']:
                 pos1 = data.iloc[index][['X', 'Y']].to_numpy()
                 pos2 = data.iloc[next_idx][['X', 'Y']].to_numpy()
-                space = np.linalg.norm(pos1 - pos2)
+                space = math.sqrt((pos1[0] - pos2[0])**2 + (pos1[1] - pos2[1])**2)
                 speeds.append(space * frame_rate)
             else:
                 # in this case save the row number for dropping it later (now not possible because we're iterating)
@@ -105,7 +108,7 @@ def add_mean_spacings_and_neighbors_positions(data: Union[pd.DataFrame, str]) ->
                 # compute the distance between the current pedestrian and the current neighbor
                 pos1 = curr_frame_data[curr_frame_data['ID'] == curr_id][['X', 'Y']].to_numpy()
                 pos2 = curr_frame_data[curr_frame_data['ID'] == neighbor_id][['X', 'Y']].to_numpy()
-                dist = np.linalg.norm(pos1 - pos2)
+                dist = math.sqrt((pos1[0][0] - pos2[0][0])**2 + (pos1[0][1] - pos2[0][1])**2)
                 if dist < max(knn_dists):
                     knn_dists[np.argmin(knn_dists)] = dist
 
@@ -115,7 +118,7 @@ def add_mean_spacings_and_neighbors_positions(data: Union[pd.DataFrame, str]) ->
             res_data.at[row_number, 'OTHERS_POSITIONS'] = others_positions
 
             # compute the mean distancing
-            knn_dists = knn_dists[knn_dists != -math.inf]   # remove eventual -inf values
+            knn_dists = knn_dists[knn_dists != math.inf]   # remove eventual -inf values
             if len(knn_dists) > 0:
                 mean_spacing = np.mean(knn_dists)
                 res_data.loc[row_number, 'MEAN_SPACING'] = mean_spacing
@@ -153,6 +156,10 @@ def create_complete_dataframe(original_data: Union[pd.DataFrame, str], save_path
 
 if __name__ == '__main__':
     data = create_complete_dataframe(
-        original_data="../data/Pedestrian_Trajectories/uo-corto.txt",
-        save_path="../data/bottleneck_corto_complete_dataframe"
+        original_data="../data/Pedestrian_Trajectories/Corridor_Data/ug-180-015.txt",
+        save_path="../data/corridor_15_complete_dataframe_2"
     )
+    # data = create_complete_dataframe(
+    #     original_data="../data/Pedestrian_Trajectories/uo-corto.txt",
+    #     save_path="../data/bottleneck_corto_complete_dataframe"
+    # )
