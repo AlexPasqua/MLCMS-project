@@ -91,7 +91,7 @@ def add_mean_spacings_and_neighbors_positions(data: Union[pd.DataFrame, str]) ->
         ids = curr_frame_data['ID'].unique()
         for curr_id in ids:
             others_positions = []
-            knn_dists = np.full(shape=(len(ids) - 1,), fill_value=-math.inf)
+            knn_dists = np.full(shape=(len(ids) - 1,), fill_value=math.inf)
             for neighbor_id in ids:
                 # skip the case where the current id and the neighbor's id are the same
                 if curr_id == neighbor_id:
@@ -106,7 +106,7 @@ def add_mean_spacings_and_neighbors_positions(data: Union[pd.DataFrame, str]) ->
                 pos1 = curr_frame_data[curr_frame_data['ID'] == curr_id][['X', 'Y']].to_numpy()
                 pos2 = curr_frame_data[curr_frame_data['ID'] == neighbor_id][['X', 'Y']].to_numpy()
                 dist = np.linalg.norm(pos1 - pos2)
-                if dist > min(knn_dists):
+                if dist < max(knn_dists):
                     knn_dists[np.argmin(knn_dists)] = dist
 
             # add the others' positions in the dataframe
