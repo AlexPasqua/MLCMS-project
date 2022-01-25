@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import math
 from typing import Union
+from tqdm import tqdm
 from sklearn.preprocessing import MinMaxScaler
 
 
@@ -43,7 +44,7 @@ def add_speeds(data: Union[pd.DataFrame, str], frame_rate: float = 16) -> pd.Dat
     # compute the speeds
     speeds = []
     rows_to_drop = []
-    for index, row in data.iterrows():
+    for index, row in tqdm(data.iterrows(), total=len(data), desc="Adding speeds"):
         # check that this row and the next on refer to the same pedestrian
         next_idx = index + 1
         try:
@@ -83,13 +84,13 @@ def add_mean_spacings_and_neighbors_positions(data: Union[pd.DataFrame, str]) ->
     res_data['OTHERS_POSITIONS'] = res_data['OTHERS_POSITIONS'].astype(object)
     # iterate for each frame
     frame_numbers = data['FRAME'].unique()
-    for frame in frame_numbers:
-        others_positions = []
+    for frame in tqdm(frame_numbers, desc="Adding speeds and others' positions"):
         # select the portion of dataframe containing data regarding the current frame
         curr_frame_data = data[data['FRAME'] == frame]
         # save the ids of all the pedestrian present in the scenario in the current frame
         ids = curr_frame_data['ID'].unique()
         for curr_id in ids:
+            others_positions = []
             knn_dists = np.full(shape=(len(ids) - 1,), fill_value=-math.inf)
             for neighbor_id in ids:
                 # skip the case where the current id and the neighbor's id are the same
@@ -137,19 +138,21 @@ def create_complete_dataframe(original_data: Union[pd.DataFrame, str], save_path
     # if original_data is a path, read the data; if it's a dataframe, simply return the dataframe itself
     extended_df = read_data(original_data)
 
-    # add speed to the data: frame rate of 16Hz, compute space between the current position and the next one and divide by 1/16
-    extended_df = add_speeds(extended_df)
-
     # add mean spacing of each pedestrian to the data
     extended_df = add_mean_spacings_and_neighbors_positions(extended_df)
 
+    # add speed to the data: frame rate of 16Hz, compute space between the current position and the next one and divide by 1/16
+    extended_df = add_speeds(extended_df)
+
     # in case save the dataframe
     if save_path is not None:
-        data.to_csv(save_path, sep=" ", header=False, index=False)
+        extended_df.to_csv(save_path, sep=" ", header=False, index=False)
 
     return extended_df
 
 
 if __name__ == '__main__':
-    data = add_mean_spacings_and_neighbors_positions("../data/Pedestrian_Trajectories/Corridor_Data/ug-180-015.txt")
-    print(data.describe())
+    data = create_complete_dataframe(
+        original_data="../data/Pedestrian_Trajectories/uo-corto.txt",
+        save_path="../data/bottleneck_corto_complete_dataframe"
+    )
