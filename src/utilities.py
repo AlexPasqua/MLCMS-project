@@ -87,7 +87,7 @@ def add_mean_spacings_and_neighbors_positions(data: Union[pd.DataFrame, str]) ->
     res_data['OTHERS_POSITIONS'] = res_data['OTHERS_POSITIONS'].astype(object)
     # iterate for each frame
     frame_numbers = data['FRAME'].unique()
-    for frame in tqdm(frame_numbers, desc="Adding speeds and others' positions"):
+    for frame in tqdm(frame_numbers, desc="Adding mean spacing and others' positions"):
         # select the portion of dataframe containing data regarding the current frame
         curr_frame_data = data[data['FRAME'] == frame]
         # save the ids of all the pedestrian present in the scenario in the current frame
@@ -150,16 +150,13 @@ def create_complete_dataframe(original_data: Union[pd.DataFrame, str], save_path
     # in case save the dataframe
     if save_path is not None:
         extended_df.to_csv(save_path, sep=" ", header=False, index=False)
+        print("Saved " + save_path)
 
     return extended_df
 
 
 if __name__ == '__main__':
     data = create_complete_dataframe(
-        original_data="../data/Pedestrian_Trajectories/Corridor_Data/ug-180-015.txt",
-        save_path="../data/corridor_15_complete_dataframe_2"
+        original_data="../data/Pedestrian_Trajectories/Corridor_Data/ug-180-030.txt",
+        save_path="../data/corridor_30_complete_dataframe"
     )
-    # data = create_complete_dataframe(
-    #     original_data="../data/Pedestrian_Trajectories/uo-corto.txt",
-    #     save_path="../data/bottleneck_corto_complete_dataframe"
-    # )
