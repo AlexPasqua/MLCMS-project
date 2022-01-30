@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 from typing import Union
 
@@ -24,3 +25,21 @@ def read_data(path: Union[pd.DataFrame, str]) -> pd.DataFrame:
     data['X'] = data['X'] / 100
     data['Y'] = data['Y'] / 100
     return data
+
+
+def read_dataset(path: str) -> (np.ndarray, np.ndarray):
+    """
+    Read the complete dataset to be fed to the NN
+    :param path: path of the pickle file containing the dataset
+    :return: data and targets in the form of 2 numpy ndarrays
+    """
+    dataset = pd.read_pickle(path)
+    targets = dataset[['SPEED']].to_numpy()
+    mean_spacing = dataset[['MEAN_SPACING']].to_numpy()
+    others_positions = dataset['OTHERS_POSITIONS'].to_numpy()
+    # join the mean spacing with the others_positions
+    data = np.empty(shape=(len(dataset), len(others_positions[0]) + 1))
+    for i in range(len(dataset)):
+        row = np.concatenate((mean_spacing[i], others_positions[i]))
+        data[i, :] = row
+    return data, targets

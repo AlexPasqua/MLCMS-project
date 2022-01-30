@@ -1,11 +1,13 @@
+import numpy as np
 import pandas as pd
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, InputLayer
+from utilities import read_dataset
 
 
 if __name__ == '__main__':
-    data = pd.read_pickle("../data/extended_corridor_df")
-    print(data.head())
+    dataset = read_dataset("../data/dataset_corridor_30.pickle")
+    exit()
 
     knn = 10
     neural_network = Sequential(
@@ -14,5 +16,5 @@ if __name__ == '__main__':
         Dense(units=1, activation='linear')
     )
 
-
-
+    neural_network.compile(optimizer='sgd', lr=0.1, loss='mse')
+    neural_network.fit(x=data, y=targets)

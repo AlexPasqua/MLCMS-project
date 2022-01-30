@@ -36,7 +36,6 @@ def _add_mean_spacing(data: pd.DataFrame, k: int = 10, keep_dist: bool = False, 
     for i, curr_row in data.iterrows():
         # keep only the k nearest neighbors for each pedestrian at each time step
         others_pos = curr_row['OTHERS_POSITIONS']
-        dists = []
         if re_sort:
             # sort the list of tuples (x_neighbor, y_neighbor, dist_neighbor) by distance to make sure we have the correct nearest neighbors
             # (this piece of data should already be sorted in data, this is a safety measure)
@@ -44,12 +43,11 @@ def _add_mean_spacing(data: pd.DataFrame, k: int = 10, keep_dist: bool = False, 
             data.at[i, 'OTHERS_POSITIONS'] = others_pos
 
         k_others_pos = others_pos[:k]
-        for triple in k_others_pos:
-            dists.append(triple[2])
-            if not keep_dist:
-                data.at[i, 'OTHERS_POSITIONS'] = [nn[0:2] for nn in k_others_pos]
-            else:
-                data.at[i, 'OTHERS_POSITIONS'] = k_others_pos
+        dists = [triple[2] for triple in k_others_pos]
+        if not keep_dist:
+            data.at[i, 'OTHERS_POSITIONS'] = np.array([nn[0:2] for nn in k_others_pos]).flatten()
+        else:
+            data.at[i, 'OTHERS_POSITIONS'] = np.array(k_others_pos).flatten()
 
         # compute the mean spacing of each pedestrian at each time step w.r.t. its k nearest neighbors
         data.loc[i, 'MEAN_SPACING'] = np.mean(dists)
@@ -136,7 +134,7 @@ def _add_neighbors_positions(data: Union[pd.DataFrame, str]) -> pd.DataFrame:
                 pos1 = curr_frame_data[curr_frame_data['ID'] == curr_id][['X', 'Y']].to_numpy()
                 pos2 = curr_frame_data[curr_frame_data['ID'] == neighbor_id][['X', 'Y']].to_numpy()
                 dist = np.linalg.norm(pos1 - pos2)
-                others_pos_and_dist.append((x, y, dist))
+                others_pos_and_dist.append([x, y, dist])
 
             # add the others' positions in the dataframe
             rows_selector = (id_frame_others_pos['ID'] == curr_id) & (id_frame_others_pos['FRAME'] == frame)  # boolean list with only 1 True
