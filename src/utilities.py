@@ -114,7 +114,8 @@ def add_neighbors_positions(data: Union[pd.DataFrame, str]) -> pd.DataFrame:
             # add the others' positions in the dataframe
             rows_selector = (id_frame_others_pos['ID'] == curr_id) & (id_frame_others_pos['FRAME'] == frame)  # boolean list with only 1 True
             row_number = np.argmax(rows_selector)
-            id_frame_others_pos.at[row_number, 'OTHERS_POSITIONS'] = others_pos_and_dist.sort(key=lambda elem: elem[2])    # sorted by distance
+            others_pos_and_dist.sort(key=lambda elem: elem[2])  # sorted by distance
+            id_frame_others_pos.at[row_number, 'OTHERS_POSITIONS'] = others_pos_and_dist
 
     # merge the 2 dataframes, having the effect of adding a column for the mean spacing to the data
     extended_data = data.merge(id_frame_others_pos, how='inner', on=['ID', 'FRAME'])
@@ -139,7 +140,7 @@ def create_extended_dataframe(original_data: Union[pd.DataFrame, str], save_path
 
     # in case save the dataframe
     if save_path is not None:
-        extended_df.to_csv(save_path, sep=" ", header=False, index=False)
+        extended_df.to_pickle(save_path)
         print("Saved " + save_path)
 
     return extended_df
@@ -147,6 +148,6 @@ def create_extended_dataframe(original_data: Union[pd.DataFrame, str], save_path
 
 if __name__ == '__main__':
     data = create_extended_dataframe(
-        original_data="../data/Pedestrian_Trajectories/Corridor_Data/ug-180-015.txt",
+        original_data="../data/Pedestrian_Trajectories/Corridor_Data/ug-180-030.txt",
         save_path="../data/to_delete"
     )
