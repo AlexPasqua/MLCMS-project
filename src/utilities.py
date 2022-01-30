@@ -54,7 +54,7 @@ def add_speeds(data: Union[pd.DataFrame, str], frame_rate: float = 16) -> pd.Dat
             if data.iloc[index]['ID'] == data.iloc[next_idx]['ID']:
                 pos1 = data.iloc[index][['X', 'Y']].to_numpy()
                 pos2 = data.iloc[next_idx][['X', 'Y']].to_numpy()
-                space = math.sqrt((pos1[0] - pos2[0])**2 + (pos1[1] - pos2[1])**2)
+                space = np.linalg.norm(pos1 - pos2)
                 speeds.append(space * frame_rate)
             else:
                 # in this case save the row number for dropping it later (now not possible because we're iterating)
@@ -72,68 +72,58 @@ def add_speeds(data: Union[pd.DataFrame, str], frame_rate: float = 16) -> pd.Dat
     return data
 
 
-def add_mean_spacings_and_neighbors_positions(data: Union[pd.DataFrame, str]) -> pd.DataFrame:
+def add_neighbors_positions(data: Union[pd.DataFrame, str]) -> pd.DataFrame:
     """
-    Add the mean spacing of each pedestrian and its n nearest neighbors
+    For each pedestrian, at each time step, add the positions of all the other pedestrians
     :param data: data as a pandas dataframe or path to the file containing the data
-    :return: a pandas dataframe extended with the mean spacings for each pedestrian and for each frame
+    :return: pandas dataframe extended with - for every pedestrian at each time step - the positions of all the other pedestrians
     """
     # read the data (if data it's a dataframe, this instruction has no effect)
     data = read_data(data)
 
     # dataframe to return
-    res_data = data[['ID', 'FRAME']]
-    res_data = res_data.assign(MEAN_SPACING=lambda x: None, OTHERS_POSITIONS=lambda x: None)
-    res_data['OTHERS_POSITIONS'] = res_data['OTHERS_POSITIONS'].astype(object)
+    id_frame_others_pos = data[['ID', 'FRAME']]
+    id_frame_others_pos = id_frame_others_pos.assign(OTHERS_POSITIONS=lambda x: None)     # add empty column for the other pedestrians' positions
+    id_frame_others_pos['OTHERS_POSITIONS'] = id_frame_others_pos['OTHERS_POSITIONS'].astype(object)
+
     # iterate for each frame
     frame_numbers = data['FRAME'].unique()
-    for frame in tqdm(frame_numbers, desc="Adding mean spacing and others' positions"):
+    for frame in tqdm(frame_numbers, desc="Adding other pedestrians' positions"):
         # select the portion of dataframe containing data regarding the current frame
         curr_frame_data = data[data['FRAME'] == frame]
         # save the ids of all the pedestrian present in the scenario in the current frame
         ids = curr_frame_data['ID'].unique()
+        # iterate on all the pedestrians
         for curr_id in ids:
-            others_positions = []
-            knn_dists = np.full(shape=(len(ids) - 1,), fill_value=math.inf)
+            others_pos_and_dist = []
+            # iterate on all the pedestrians other than curr_id (i.e. all its neighbors)
             for neighbor_id in ids:
-                # skip the case where the current id and the neighbor's id are the same
                 if curr_id == neighbor_id:
                     continue
 
                 # add the neighbor's position to this list in order to save it
                 xy = curr_frame_data.loc[curr_frame_data['ID'] == neighbor_id, ['X', 'Y']]
                 x, y = np.squeeze(xy.to_numpy())
-                others_positions.append((x, y))
 
                 # compute the distance between the current pedestrian and the current neighbor
                 pos1 = curr_frame_data[curr_frame_data['ID'] == curr_id][['X', 'Y']].to_numpy()
                 pos2 = curr_frame_data[curr_frame_data['ID'] == neighbor_id][['X', 'Y']].to_numpy()
-                dist = math.sqrt((pos1[0][0] - pos2[0][0])**2 + (pos1[0][1] - pos2[0][1])**2)
-                if dist < max(knn_dists):
-                    knn_dists[np.argmin(knn_dists)] = dist
+                dist = np.linalg.norm(pos1 - pos2)
+                others_pos_and_dist.append((x, y, dist))
 
             # add the others' positions in the dataframe
-            rows_selector = (res_data['ID'] == curr_id) & (res_data['FRAME'] == frame)  # returns a boolean list with only 1 True
+            rows_selector = (id_frame_others_pos['ID'] == curr_id) & (id_frame_others_pos['FRAME'] == frame)  # boolean list with only 1 True
             row_number = np.argmax(rows_selector)
-            res_data.at[row_number, 'OTHERS_POSITIONS'] = others_positions
-
-            # compute the mean distancing
-            knn_dists = knn_dists[knn_dists != math.inf]   # remove eventual -inf values
-            if len(knn_dists) > 0:
-                mean_spacing = np.mean(knn_dists)
-                res_data.loc[row_number, 'MEAN_SPACING'] = mean_spacing
-            else:
-                # if there is only 1 pedestrian in the scenario, mean_spacing put at -1 as a place holder
-                res_data.loc[row_number, 'MEAN_SPACING'] = -1
+            id_frame_others_pos.at[row_number, 'OTHERS_POSITIONS'] = others_pos_and_dist.sort(key=lambda elem: elem[2])    # sorted by distance
 
     # merge the 2 dataframes, having the effect of adding a column for the mean spacing to the data
-    data = data.merge(res_data, how='inner', on=['ID', 'FRAME'])
-    return data
+    extended_data = data.merge(id_frame_others_pos, how='inner', on=['ID', 'FRAME'])
+    return extended_data
 
 
-def create_complete_dataframe(original_data: Union[pd.DataFrame, str], save_path: str = None) -> pd.DataFrame:
+def create_extended_dataframe(original_data: Union[pd.DataFrame, str], save_path: str = None) -> pd.DataFrame:
     """
-    Creates a complete dataframe containing extra - derived - data, e.g. speed and mean spacing for each pedestrian
+    Creates an extended dataframe containing extra - derived - data, e.g. speeds and other pedestrians' positions
     :param original_data: original data as a pandas dataframe or path to the file containing the data
     :param save_path: (optional) if not None, save the model to the specified path
     :return: a pandas dataframe containing the original data plus some derived data
@@ -142,7 +132,7 @@ def create_complete_dataframe(original_data: Union[pd.DataFrame, str], save_path
     extended_df = read_data(original_data)
 
     # add mean spacing of each pedestrian to the data
-    extended_df = add_mean_spacings_and_neighbors_positions(extended_df)
+    extended_df = add_neighbors_positions(extended_df)
 
     # add speed to the data: frame rate of 16Hz, compute space between the current position and the next one and divide by 1/16
     extended_df = add_speeds(extended_df)
@@ -156,7 +146,7 @@ def create_complete_dataframe(original_data: Union[pd.DataFrame, str], save_path
 
 
 if __name__ == '__main__':
-    data = create_complete_dataframe(
-        original_data="../data/Pedestrian_Trajectories/Corridor_Data/ug-180-030.txt",
-        save_path="../data/corridor_30_complete_dataframe"
+    data = create_extended_dataframe(
+        original_data="../data/Pedestrian_Trajectories/Corridor_Data/ug-180-015.txt",
+        save_path="../data/to_delete"
     )
