@@ -27,7 +27,7 @@ def read_data(path: Union[pd.DataFrame, str]) -> pd.DataFrame:
     return data
 
 
-def read_dataset(path: str) -> (np.ndarray, np.ndarray):
+def read_dataset(path: str, fd_training=False) -> (np.ndarray, np.ndarray):
     """
     Read the complete dataset to be fed to the NN
     :param path: path of the pickle file containing the dataset
@@ -36,10 +36,12 @@ def read_dataset(path: str) -> (np.ndarray, np.ndarray):
     dataset = pd.read_pickle(path)
     targets = dataset[['SPEED']].to_numpy()
     mean_spacing = dataset[['MEAN_SPACING']].to_numpy()
-    knn_relative_positions = dataset['KNN_RELATIVE_POSITIONS'].to_numpy()
-    # join the mean spacing with the knn_relative_positions
-    data = np.empty(shape=(len(dataset), len(knn_relative_positions[0]) + 1))
-    for i in range(len(dataset)):
-        row = np.concatenate((mean_spacing[i], knn_relative_positions[i]))
-        data[i, :] = row
-    return data, targets
+    if not fd_training:
+        knn_relative_positions = dataset['KNN_RELATIVE_POSITIONS'].to_numpy()
+        # join the mean spacing with the knn_relative_positions
+        data = np.empty(shape=(len(dataset), len(knn_relative_positions[0]) + 1))
+        for i in range(len(dataset)):
+            row = np.concatenate((mean_spacing[i], knn_relative_positions[i]))
+            data[i, :] = row
+        return data, targets
+    return mean_spacing, targets
