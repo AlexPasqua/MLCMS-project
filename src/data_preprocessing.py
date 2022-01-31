@@ -97,6 +97,26 @@ def _add_speeds(data: Union[pd.DataFrame, str], frame_rate: float = 16) -> pd.Da
     return data
 
 
+def _create_relative_neighbours_df(extended_data):
+    """
+    Construct the relative positions of every k nearest neighbour wrt the reference pedestrian
+    :param extended_data: data complete of neighbour positions and reference position
+    :return: return dataframe complete also of relative positions of neighbours
+    """
+    extended_data['KNN_RELATIVE_POSITIONS'] = np.empty(shape=extended_data.shape[0])
+    extended_data['KNN_RELATIVE_POSITIONS'] = extended_data['KNN_RELATIVE_POSITIONS'].astype(object)
+    for index, row in tqdm(extended_data.iterrows(), total=len(extended_data), desc="Adding relative positions"):
+        relative_pos_list = []
+        reference_p = [row['X'], row['Y']]
+        for i in range(len(row['OTHERS_POSITIONS'])):
+            reference_index = 0 if i % 2 == 0 else 1
+            relative_pos_list.append(row['OTHERS_POSITIONS'][i]-reference_p[reference_index])
+        extended_data.at[index, 'KNN_RELATIVE_POSITIONS'] = np.array(relative_pos_list)
+    return extended_data
+
+
+
+
 def _add_neighbors_positions(data: Union[pd.DataFrame, str]) -> pd.DataFrame:
     """
     For each pedestrian, at each time step, add the positions of all the other pedestrians
@@ -171,6 +191,7 @@ def create_extended_dataframe(original_data: Union[pd.DataFrame, str], save_path
     return extended_df
 
 
+
 def create_dataset(original_data: Union[pd.DataFrame, str], k: int = 10, extended_save_path: str = None, dataset_save_path: str = None) -> pd.DataFrame:
     """
     Creates the dataset for the NN starting from the raw data
@@ -190,8 +211,11 @@ def create_dataset(original_data: Union[pd.DataFrame, str], k: int = 10, extende
     # add the mean spacing between each pedestrian and its current k nearest neighbors
     dataset = _add_mean_spacing(dataset, k=k, keep_dist=False, re_sort=False)
 
+    # create relative positions of k nearest neighbors
+    dataset = _create_relative_neighbours_df(dataset)
+
     # drop columns not to be fed to the network
-    dataset.drop(['ID', 'FRAME', 'X', 'Y'], axis=1, inplace=True)
+    dataset.drop(['ID', 'FRAME', 'X', 'Y', 'OTHERS_POSITIONS'], axis=1, inplace=True)
 
     # save
     if dataset_save_path is not None:
@@ -204,4 +228,4 @@ if __name__ == '__main__':
     original_data_path = "../data/Pedestrian_Trajectories/Corridor_Data/ug-180-030.txt"
     extended_path = "../data/corridor_30_extended.pickle"
     save_path = "../data/dataset_corridor_30.pickle"
-    create_dataset(original_data=extended_path, k=10, extended_save_path=extended_path, dataset_save_path=save_path)
+    dataset = create_dataset(original_data=extended_path, k=10, extended_save_path=extended_path, dataset_save_path=save_path)
