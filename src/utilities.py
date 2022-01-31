@@ -36,10 +36,10 @@ def read_dataset(path: str) -> (np.ndarray, np.ndarray):
     dataset = pd.read_pickle(path)
     targets = dataset[['SPEED']].to_numpy()
     mean_spacing = dataset[['MEAN_SPACING']].to_numpy()
-    others_positions = dataset['OTHERS_POSITIONS'].to_numpy()
-    # join the mean spacing with the others_positions
-    data = np.empty(shape=(len(dataset), len(others_positions[0]) + 1))
+    knn_relative_positions = dataset['KNN_RELATIVE_POSITIONS'].to_numpy()
+    # join the mean spacing with the knn_relative_positions
+    data = np.empty(shape=(len(dataset), len(knn_relative_positions[0]) + 1))
     for i in range(len(dataset)):
-        row = np.concatenate((mean_spacing[i], others_positions[i]))
+        row = np.concatenate((mean_spacing[i], knn_relative_positions[i]))
         data[i, :] = row
     return data, targets
