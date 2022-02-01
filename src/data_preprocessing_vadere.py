@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 
+
 def get_time_delta(base_path):
     """
     time deltas between measurements are different because of the simulation, this function returns the minimum of all
@@ -12,6 +13,7 @@ def get_time_delta(base_path):
     peds_pos_starting_delta, peds_pos_ending_delta = peds_pos[:, 1], peds_pos[:, 2]
     time_delta = np.subtract(peds_pos_ending_delta, peds_pos_starting_delta)
     return min(set([round(i, 1) for i in time_delta]))
+
 
 def get_basic_dataset_fields(knn_dataset):
     """
@@ -37,11 +39,11 @@ def add_relative_positions(knn_df):
     knn_df['KNN_RELATIVE_POSITIONS'] = knn_df['KNN_RELATIVE_POSITIONS'].astype(object)
     for i in range(knn_positions.shape[0]):
         knn_df.at[i, 'KNN_RELATIVE_POSITIONS'] = np.array(
-            [(knn_positions[i, j], knn_positions[i, j + 1]) for j in range(0, knn_positions.shape[1], 2)])
+            [(knn_positions[i, j], knn_positions[i, j + 1]) for j in range(0, knn_positions.shape[1], 2)]).flatten()
     return knn_df
 
 
-def add_speed(knn_df, knn_file):
+def add_speed(knn_df, knn_file, time_step):
     """
     add speed to each row (last row of each pedestrians and rows with pedestrians staying still)
     :param knn_df:
@@ -63,14 +65,12 @@ def add_speed(knn_df, knn_file):
         for i in range(len(tmp_df_index) - 1):
             pos_a, pos_b = tmp_df.iloc[i]['PEDESTRIAN_POSITION'], tmp_df.iloc[i + 1]['PEDESTRIAN_POSITION']
             delta_t = tmp_df.iloc[i + 1]['TIME_STEP'] - tmp_df.iloc[i]['TIME_STEP']
-            knn_df.iloc[tmp_df_index[i], list(knn_df.columns).index('SPEED')] = np.linalg.norm(pos_a - pos_b) / (
-                    delta_t * time_step)
+            knn_df.iloc[tmp_df_index[i], list(knn_df.columns).index('SPEED')] = np.linalg.norm(pos_a - pos_b) / (delta_t * time_step)
 
     # delete all rows with speed = -1.0 (are last rows for a given pedestrian) or 0.0 (pedestrian is standing still)
     knn_df = knn_df[~knn_df['SPEED'].isin([-1.0, 0.0])]
     knn_df = knn_df.drop(['ID', 'TIME_STEP', 'PEDESTRIAN_POSITION'], axis=1, inplace=False)
     return knn_df
-
 
 
 def create_complete_dataset_vadere(knn_file, time_step, dataset_save_path=None):
@@ -89,20 +89,17 @@ def create_complete_dataset_vadere(knn_file, time_step, dataset_save_path=None):
     knn_df = add_relative_positions(knn_df)
 
     # add speed of pedestrians
-    knn_df = add_speed(knn_df, knn_file)
+    knn_df = add_speed(knn_df, knn_file, time_step)
 
-    # save dataset if requesed
+    # save dataset if requested
     if dataset_save_path is not None:
         knn_df.to_pickle(dataset_save_path)
 
     return knn_df
 
 
-
-
-
 if __name__ == '__main__':
-    base_path = "../vadere-projects/output/corridor_2022-01-31_11-41-09.992/"
+    base_path = "../vadere-projects/output/bottleneck_vadere/"
     time_step = get_time_delta(base_path)  # dependent on the simulation, pay attention! Also is not always exactly 0.5, approximation!!
     knn_file = np.loadtxt(base_path + "out.txt", skiprows=1)  # get the file containing knns, remove header line
-    knn_df = create_complete_dataset_vadere(knn_file, time_step, dataset_save_path="../data/vadere_corridor_100")
+    knn_df = create_complete_dataset_vadere(knn_file, time_step, dataset_save_path="../data/vadere_bottleneck_100_90")
