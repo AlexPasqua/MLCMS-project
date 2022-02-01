@@ -110,11 +110,9 @@ def _create_relative_neighbours_df(extended_data):
         reference_p = [row['X'], row['Y']]
         for i in range(len(row['OTHERS_POSITIONS'])):
             reference_index = 0 if i % 2 == 0 else 1
-            relative_pos_list.append(row['OTHERS_POSITIONS'][i]-reference_p[reference_index])
+            relative_pos_list.append(row['OTHERS_POSITIONS'][i] - reference_p[reference_index])
         extended_data.at[index, 'KNN_RELATIVE_POSITIONS'] = np.array(relative_pos_list)
     return extended_data
-
-
 
 
 def _add_neighbors_positions(data: Union[pd.DataFrame, str]) -> pd.DataFrame:
@@ -128,7 +126,8 @@ def _add_neighbors_positions(data: Union[pd.DataFrame, str]) -> pd.DataFrame:
 
     # dataframe to return
     id_frame_others_pos = data[['ID', 'FRAME']]
-    id_frame_others_pos = id_frame_others_pos.assign(OTHERS_POSITIONS=lambda x: None)     # add empty column for the other pedestrians' positions
+    id_frame_others_pos = id_frame_others_pos.assign(
+        OTHERS_POSITIONS=lambda x: None)  # add empty column for the other pedestrians' positions
     id_frame_others_pos['OTHERS_POSITIONS'] = id_frame_others_pos['OTHERS_POSITIONS'].astype(object)
 
     # iterate for each frame
@@ -157,7 +156,8 @@ def _add_neighbors_positions(data: Union[pd.DataFrame, str]) -> pd.DataFrame:
                 others_pos_and_dist.append([x, y, dist])
 
             # add the others' positions in the dataframe
-            rows_selector = (id_frame_others_pos['ID'] == curr_id) & (id_frame_others_pos['FRAME'] == frame)  # boolean list with only 1 True
+            rows_selector = (id_frame_others_pos['ID'] == curr_id) & (
+                        id_frame_others_pos['FRAME'] == frame)  # boolean list with only 1 True
             row_number = np.argmax(rows_selector)
             others_pos_and_dist.sort(key=lambda elem: elem[2])  # sorted by distance
             id_frame_others_pos.at[row_number, 'OTHERS_POSITIONS'] = others_pos_and_dist
@@ -191,8 +191,8 @@ def create_extended_dataframe(original_data: Union[pd.DataFrame, str], save_path
     return extended_df
 
 
-
-def create_dataset(original_data: Union[pd.DataFrame, str], k: int = 10, extended_save_path: str = None, dataset_save_path: str = None) -> pd.DataFrame:
+def create_dataset(original_data: Union[pd.DataFrame, str], k: int = 10, extended_save_path: str = None,
+                   dataset_save_path: str = None) -> pd.DataFrame:
     """
     Creates the dataset for the NN starting from the raw data
     :param original_data: original data as a pandas dataframe or path to the file containing the data
