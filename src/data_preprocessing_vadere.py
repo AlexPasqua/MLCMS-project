@@ -31,8 +31,8 @@ def get_basic_dataset_fields(knn_dataset):
 def add_relative_positions(knn_df):
     """
     add relative positions of nearest neighbours
-    :param knn_df:
-    :return:
+    :param knn_df: get dataframe without relative positions
+    :return: get dataframe with relative positions
     """
     knn_positions = knn_file[:, 3:-2]  # already relative positions
     knn_df['KNN_RELATIVE_POSITIONS'] = np.empty(shape=knn_positions.shape[0])
@@ -46,9 +46,10 @@ def add_relative_positions(knn_df):
 def add_speed(knn_df, knn_file, time_step):
     """
     add speed to each row (last row of each pedestrians and rows with pedestrians staying still)
-    :param knn_df:
-    :param knn_file:
-    :return:
+    :param knn_df: dataframe without pedestrian speeds
+    :param knn_file: file original out of vadere elaboration
+    :param time_step: estimated time passing between two simulation steps
+    :return: dataframe with pedestrian speeds
     """
     knn_pedestrian_position = np.array([(knn_file[i, -2], knn_file[i, -1]) for i in range(knn_file.shape[0])])
     knn_df['PEDESTRIAN_POSITION'] = np.empty(shape=knn_file.shape[0])
@@ -77,10 +78,10 @@ def create_complete_dataset_vadere(knn_file, time_step, dataset_save_path=None):
     """
     Return a vadere dataset (and save it if required), ready with the input and output field for the NN
     file can be fed to NN simply calling utilities.read_dataset on the saved pickle path
-    :param knn_file:
-    :param time_step:
-    :param dataset_save_path:
-    :return:
+    :param knn_file: file coming out of vadere
+    :param time_step: estimated time passing between two simulation steps
+    :param dataset_save_path: where to save the complete dataset
+    :return: complete dataset full of speed, relative positions and mean spacing
     """
     # get sim_times, pedestrian ids and mean_spacing
     knn_df = get_basic_dataset_fields(knn_file)
@@ -100,6 +101,6 @@ def create_complete_dataset_vadere(knn_file, time_step, dataset_save_path=None):
 
 if __name__ == '__main__':
     base_path = "../vadere-projects/output/bottleneck_vadere/"
-    time_step = get_time_delta(base_path)  # dependent on the simulation, pay attention! Also is not always exactly 0.5, approximation!!
+    time_step = get_time_delta(base_path)  # dependent on the simulation, pay attention!
     knn_file = np.loadtxt(base_path + "out.txt", skiprows=1)  # get the file containing knns, remove header line
     knn_df = create_complete_dataset_vadere(knn_file, time_step, dataset_save_path="../data/vadere_bottleneck_100_90")

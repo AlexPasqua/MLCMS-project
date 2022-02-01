@@ -1,5 +1,5 @@
 {
-  "name" : "corridor",
+  "name" : "bottleneck",
   "description" : "",
   "release" : "2.0",
   "commithash" : "No version control commit hash available!",
@@ -42,7 +42,7 @@
       "id" : 5,
       "attributesType" : "org.vadere.state.attributes.processor.KNNAttributes",
       "attributes" : {
-        "measureAreaId" : 5,
+        "measureAreaId" : 1,
         "kNN_num" : 10
       }
     } ],
@@ -107,15 +107,15 @@
     },
     "attributesSimulation" : {
       "finishTime" : 100.0,
-      "simTimeStepLength" : 0.5,
+      "simTimeStepLength" : 0.4,
       "realTimeSimTimeRatio" : 0.1,
       "writeSimulationData" : true,
       "visualizationEnabled" : true,
-      "printFPS" : true,
+      "printFPS" : false,
       "digitsPerCoordinate" : 2,
       "useFixedSeed" : true,
-      "fixedSeed" : 702786192841884750,
-      "simulationSeed" : 702786192841884750
+      "fixedSeed" : 8919011273213853401,
+      "simulationSeed" : 8919011273213853401
     },
     "attributesPsychology" : {
       "usePsychologyLayer" : false,
@@ -129,8 +129,8 @@
         "bounds" : {
           "x" : 0.0,
           "y" : 0.0,
-          "width" : 9.0,
-          "height" : 6.0
+          "width" : 15.0,
+          "height" : 10.0
         },
         "boundingBoxWidth" : 0.5,
         "bounded" : true,
@@ -138,42 +138,102 @@
       },
       "obstacles" : [ {
         "shape" : {
-          "x" : 0.5,
-          "y" : 4.0,
-          "width" : 8.0,
-          "height" : 1.5,
-          "type" : "RECTANGLE"
+          "type" : "POLYGON",
+          "points" : [ {
+            "x" : 10.0,
+            "y" : 4.0
+          }, {
+            "x" : 10.0,
+            "y" : 3.6
+          }, {
+            "x" : 9.999999999999998,
+            "y" : 2.9999999999999996
+          }, {
+            "x" : 0.5,
+            "y" : 3.0
+          }, {
+            "x" : 0.5,
+            "y" : 0.5
+          }, {
+            "x" : 14.5,
+            "y" : 0.5
+          }, {
+            "x" : 14.5,
+            "y" : 2.3
+          }, {
+            "x" : 14.5,
+            "y" : 3.0
+          }, {
+            "x" : 14.5,
+            "y" : 3.6
+          }, {
+            "x" : 14.5,
+            "y" : 4.0
+          }, {
+            "x" : 14.5,
+            "y" : 4.5
+          }, {
+            "x" : 10.0,
+            "y" : 4.5
+          } ]
         },
-        "id" : 1
+        "id" : 9
       }, {
         "shape" : {
-          "x" : 0.5,
-          "y" : 0.5,
-          "width" : 8.0,
-          "height" : 1.5,
-          "type" : "RECTANGLE"
+          "type" : "POLYGON",
+          "points" : [ {
+            "x" : 14.5,
+            "y" : 9.5
+          }, {
+            "x" : 0.5,
+            "y" : 9.5
+          }, {
+            "x" : 0.5,
+            "y" : 7.0
+          }, {
+            "x" : 9.999999999999998,
+            "y" : 7.0
+          }, {
+            "x" : 10.0,
+            "y" : 6.0
+          }, {
+            "x" : 10.0,
+            "y" : 5.4
+          }, {
+            "x" : 14.5,
+            "y" : 5.4
+          }, {
+            "x" : 14.5,
+            "y" : 6.0
+          }, {
+            "x" : 14.5,
+            "y" : 7.0
+          }, {
+            "x" : 14.5,
+            "y" : 7.2
+          } ]
         },
-        "id" : 2
+        "id" : 10
       } ],
       "measurementAreas" : [ {
         "shape" : {
-          "x" : 2.1,
-          "y" : 2.0,
-          "width" : 4.9,
-          "height" : 2.0,
+          "x" : 8.4796573875803,
+          "y" : 3.0,
+          "width" : 1.5203426124197001,
+          "height" : 4.0,
           "type" : "RECTANGLE"
         },
-        "id" : 5
+        "id" : 1
       } ],
       "stairs" : [ ],
       "targets" : [ {
-        "id" : 4,
+        "id" : 11,
         "absorbing" : true,
         "shape" : {
-          "x" : 8.0,
-          "y" : 2.0,
+          "x" : 14.0,
+          "y" : 4.5,
           "width" : 0.5,
-          "height" : 2.0,
+          "height" : 0.9,
           "type" : "RECTANGLE"
         },
         "waitingTime" : 0.0,
@@ -189,12 +249,12 @@
       "aerosolClouds" : [ ],
       "droplets" : [ ],
       "sources" : [ {
-        "id" : 3,
+        "id" : 12,
         "shape" : {
           "x" : 0.5,
-          "y" : 2.0,
-          "width" : 0.5,
-          "height" : 2.0,
+          "y" : 3.0,
+          "width" : 1.0,
+          "height" : 4.0,
           "type" : "RECTANGLE"
         },
         "interSpawnTimeDistribution" : "constant",
@@ -208,7 +268,7 @@
         "spawnAtRandomPositions" : false,
         "spawnAtGridPositionsCA" : false,
         "useFreeSpaceOnly" : true,
-        "targetIds" : [ 4 ],
+        "targetIds" : [ 11 ],
         "groupSizeDistribution" : [ 1.0 ],
         "dynamicElementType" : "PEDESTRIAN",
         "attributesPedestrian" : null

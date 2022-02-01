@@ -37,7 +37,8 @@ def _add_mean_spacing(data: pd.DataFrame, k: int = 10, keep_dist: bool = False, 
         # keep only the k nearest neighbors for each pedestrian at each time step
         others_pos = curr_row['OTHERS_POSITIONS']
         if re_sort:
-            # sort the list of tuples (x_neighbor, y_neighbor, dist_neighbor) by distance to make sure we have the correct nearest neighbors
+            # sort the list of tuples (x_neighbor, y_neighbor, dist_neighbor) by distance
+            # to make sure we have the correct nearest neighbors
             # (this piece of data should already be sorted in data, this is a safety measure)
             others_pos.sort(key=lambda x: x[2])
             data.at[i, 'OTHERS_POSITIONS'] = others_pos
@@ -85,7 +86,8 @@ def _add_speeds(data: Union[pd.DataFrame, str], frame_rate: float = 16) -> pd.Da
                 # in this case save the row number for dropping it later (now not possible because we're iterating)
                 rows_to_drop.append(index)
         except IndexError:
-            # it means we reached the last row and data.iloc[index + 1] gives an error. Drop last row as well (didn't compute a speed for it)
+            # it means we reached the last row and data.iloc[index + 1] gives an error.
+            # Drop last row as well (didn't compute a speed for it)
             rows_to_drop.append(index)
 
     # drop rows representing the last frame for each pedestrian, because we didn't calculate a speed for those rows

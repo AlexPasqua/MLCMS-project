@@ -13,7 +13,8 @@ def read_data(path: Union[pd.DataFrame, str]) -> pd.DataFrame:
     :param path: path of the file containing the data or a pandas Dataframe. In the last case, the func simply returns this parameter
     :return: a pandas dataframe containing the data
     """
-    # if path is already a dataframe, return it (so the function is callable without checking if you have a path or the dataframe itself already)
+    # if path is already a dataframe, return it
+    # (so the function is callable without checking if you have a path or the dataframe itself already)
     if isinstance(path, pd.DataFrame):
         return path
     # otherwise read the data and return the dataframe
@@ -35,6 +36,7 @@ def read_dataset(path: str, fd_training=False) -> (np.ndarray, np.ndarray):
     """
     Read the complete dataset to be fed to the NN
     :param path: path of the pickle file containing the dataset
+    :param fd_training: if True keep also k nearest neighbour for input, False leaves only mean spacing for FDNetwork
     :return: data and targets in the form of 2 numpy ndarrays
     """
     dataset = pd.read_pickle(path)
