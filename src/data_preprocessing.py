@@ -204,8 +204,13 @@ def create_dataset(original_data: Union[pd.DataFrame, str], k: int = 10, extende
     :return:
     """
     # extend data with more information (e.g. neighbors positions etc)
-    # extended_data = create_extended_dataframe(original_data, save_path=extended_save_path)
-    extended_data = pd.read_pickle(original_data)
+    try:
+        f = open(extended_save_path)
+        # Do something with the file
+    except IOError:
+        print("File not exist, creating it..")
+        create_extended_dataframe(original_data, save_path=extended_save_path)
+    extended_data = pd.read_pickle(extended_save_path)
 
     # remove frames with less than k nearest neighbors
     dataset = _create_num_neighbours_df(extended_data, neighbour_num=k)
@@ -227,7 +232,16 @@ def create_dataset(original_data: Union[pd.DataFrame, str], k: int = 10, extende
 
 
 if __name__ == '__main__':
-    original_data_path = "../data/Pedestrian_Trajectories/Corridor_Data/ug-180-030.txt"
-    extended_path = "../data/corridor_30_extended.pickle"
-    save_path = "../data/dataset_corridor_30.pickle"
-    dataset = create_dataset(original_data=extended_path, k=10, extended_save_path=extended_path, dataset_save_path=save_path)
+    # original_data_path = "../data/Pedestrian_Trajectories/Corridor_Data/ug-180-030.txt"
+    # extended_path = "../data/corridor_30_extended.pickle"
+    # save_path = "../data/dataset_corridor_30"
+    # original_data_path = "../data/Pedestrian_Trajectories/Bottleneck_Data/uo-180-070.txt"
+    # extended_path = "../data/bottleneck_070_extended.pickle"
+    # save_path = "../data/dataset_bottleneck_070"
+    # original_data_path = "../data/Pedestrian_Trajectories/Corridor_Data/ug-180-085.txt"
+    # extended_path = "../data/corridor_85_extended.pickle"
+    # save_path = "../data/dataset_corridor_85"
+    original_data_path = "../data/Pedestrian_Trajectories/Corridor_Data/ug-180-140.txt"
+    extended_path = "../data/corridor_140_extended.pickle"
+    save_path = "../data/dataset_corridor_140"
+    dataset = create_dataset(original_data=original_data_path, k=10, extended_save_path=extended_path, dataset_save_path=save_path)

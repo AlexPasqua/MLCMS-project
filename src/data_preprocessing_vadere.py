@@ -100,7 +100,7 @@ def create_complete_dataset_vadere(knn_file, time_step, dataset_save_path=None):
 
 
 if __name__ == '__main__':
-    base_path = "../vadere-projects/output/bottleneck_vadere/"
+    base_path = "../vadere-projects/output/bottleneck_vadere_final/"
     time_step = get_time_delta(base_path)  # dependent on the simulation, pay attention!
     knn_file = np.loadtxt(base_path + "out.txt", skiprows=1)  # get the file containing knns, remove header line
     knn_df = create_complete_dataset_vadere(knn_file, time_step, dataset_save_path="../data/vadere_bottleneck_100_90")

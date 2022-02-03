@@ -1,5 +1,8 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
+getting_good_mean_spacing/
+data/bottleneck_070_extended.pickle
+data/corridor_85_extended.pickle
 *.py[cod]
 *$py.class
 

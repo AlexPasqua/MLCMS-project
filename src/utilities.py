@@ -50,7 +50,7 @@ def read_dataset(path: str, fd_training=False) -> (np.ndarray, np.ndarray):
             row = np.concatenate((mean_spacing[i], knn_relative_positions[i].flatten()))
             data[i, :] = row
         return data, targets
-    return mean_spacing, targets
+    return mean_spacing.astype(float), targets.astype(float)
 
 
 def plot_fd_and_speeds(data_path: str, plot_title: str = "", fd_epochs: int = 50, nn_epochs: int = 50, hidden_dims: Tuple[int] = (3,),
@@ -74,7 +74,7 @@ def plot_fd_and_speeds(data_path: str, plot_title: str = "", fd_epochs: int = 50
     loss_fd = hist.history['loss']
 
     # train the speed predictor neural network
-    layers = [Dense(units=d) for d in hidden_dims] + [Dense(units=1)]
+    layers = [Dense(units=d, activation='sigmoid') for d in hidden_dims] + [Dense(units=1, activation='linear')]
     nn = Sequential(layers)
     nn.compile(optimizer='sgd', loss='mse')
     hist = nn.fit(x=nn_data, y=nn_targets, epochs=nn_epochs)
@@ -96,14 +96,16 @@ def plot_fd_and_speeds(data_path: str, plot_title: str = "", fd_epochs: int = 50
         fig.show()
 
     # plot
-    mean_spacings = np.expand_dims(np.linspace(start=0.5, stop=3.5, num=1000), axis=1)
+    stop = np.max(fd_data) * 1.5
+    mean_spacings = np.expand_dims(np.linspace(start=0.5, stop=stop, num=1000), axis=1)
     fd_speeds = model.predict(x=mean_spacings)
     nn_speeds = nn.predict(x=nn_data)
-    plt.plot(mean_spacings, fd_speeds)
-    plt.scatter(nn_data[:, 0], nn_speeds)
-    plt.xlabel("Mean spacing")
-    plt.ylabel("Speed")
-    plt.title(plot_title)
+    fig, ax = plt.subplots(1, 1)
+    ax.plot(mean_spacings, fd_speeds, c='orange')
+    ax.scatter(nn_data[:, 0], nn_speeds, s=1)
+    ax.set_xlabel("Mean spacing")
+    ax.set_ylabel("Speed")
+    fig.suptitle(plot_title)
     plt.show()
 
 
