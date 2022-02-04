@@ -241,7 +241,10 @@ if __name__ == '__main__':
     # original_data_path = "../data/Pedestrian_Trajectories/Corridor_Data/ug-180-085.txt"
     # extended_path = "../data/corridor_85_extended.pickle"
     # save_path = "../data/dataset_corridor_85"
-    original_data_path = "../data/Pedestrian_Trajectories/Corridor_Data/ug-180-140.txt"
-    extended_path = "../data/corridor_140_extended.pickle"
-    save_path = "../data/dataset_corridor_140"
+    # original_data_path = "../data/Pedestrian_Trajectories/Corridor_Data/ug-180-140.txt"
+    # extended_path = "../data/corridor_140_extended.pickle"
+    # save_path = "../data/dataset_corridor_140"
+    original_data_path = "../data/Pedestrian_Trajectories/Bottleneck_Data/uo-180-180.txt"
+    extended_path = "../data/bottleneck_180_extended.pickle"
+    save_path = "../data/dataset_bottleneck_180"
     dataset = create_dataset(original_data=original_data_path, k=10, extended_save_path=extended_path, dataset_save_path=save_path)

@@ -12,8 +12,8 @@ public class KNNPedestrianData {
     private List<VPoint> kNN;
 
 
-    public KNNPedestrianData(double sk, VPoint pp, List<VPoint> kNN) {
-        this.meanSpacing = sk;
+    public KNNPedestrianData(double meanSpacing, VPoint pp, List<VPoint> kNN) {
+        this.meanSpacing = meanSpacing;
         this.pedestrianPosition = pp;
         this.kNN = kNN;
     }
@@ -41,8 +41,8 @@ public class KNNPedestrianData {
 
     @Override
     public String toString() {
-        return "PedestriansKNearestNeighborData{" +
-                "sk=" + meanSpacing +
+        return "KNNPedestrianData{" +
+                "meanSpacing=" + meanSpacing +
                 ", pedestrianPosition=" + pedestrianPosition +
                 ", kNN=" + kNN +
                 '}';

@@ -109,7 +109,7 @@ public class KNNProcessor extends DataProcessor<TimestepPedestrianIdKey, KNNPede
 
 
     }
-    /** calculating mean spacing as sum of distances divided by number of neighbours**/
+    /** calculating mean spacing as sum of distances divided by number of neighbours **/
     private double calculateMeanSpacingDistance(Pedestrian p, PriorityQueue<DistanceCoordinates> pq) {
         double ret = 0;
         for (DistanceCoordinates dc : pq) {
@@ -161,7 +161,7 @@ public class KNNProcessor extends DataProcessor<TimestepPedestrianIdKey, KNNPede
         }
     }
 
-    /** used for the priority queue, needed for ordering and finding max distance in top 10 nearest**/
+    /** used for the priority queue, needed for ordering and finding max distance in top 10  **/
     private class DistanceCoordinatesComparator implements Comparator<DistanceCoordinates> {
         @Override
         public int compare(DistanceCoordinates a, DistanceCoordinates b) {
