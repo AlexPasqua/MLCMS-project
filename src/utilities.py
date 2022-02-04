@@ -53,8 +53,34 @@ def read_dataset(path: str, fd_training=False) -> (np.ndarray, np.ndarray):
     return mean_spacing.astype(float), targets.astype(float)
 
 
+def plot_fd_and_original(data_path: str, plot_title: str = "", fd_epochs: int = 50):
+    """
+    Plots the observed speeds and the ones predicted by the FD model, depending on the mean spacing
+    :param data_path: path of the file containing the data
+    :param plot_title: title of the plot
+    :param fd_epochs: number of epochs of training for the FD
+    """
+    fd_data, fd_targets = read_dataset(data_path, fd_training=True)
+    # train the FD model
+    model = FD_Network()
+    model.compile(optimizer='sgd', loss='mse')
+    hist = model.fit(x=fd_data, y=fd_targets, epochs=fd_epochs)
+
+    # generate the FD speeds with prediction
+    stop = np.max(fd_data) * 1.5
+    mean_spacings = np.expand_dims(np.linspace(start=0.5, stop=stop, num=1000), axis=1)
+    fd_speeds = model.predict(x=mean_spacings)
+
+    # plot the FD prediction over the observations
+    plt.plot(mean_spacings, fd_speeds, c='orange')  # fd model data
+    plt.scatter(fd_data, fd_targets, s=1)  # original data
+    plt.xlabel("Mean spacing")
+    plt.ylabel("Speed")
+    plt.title(plot_title)
+    plt.show()
+
 def plot_fd_and_speeds(data_path: str, plot_title: str = "", fd_epochs: int = 50, nn_epochs: int = 50, hidden_dims: Tuple[int] = (3,),
-                       training_plots: bool = True):
+                       hidden_activation_func: str = "sigmoid", training_plots: bool = True):
     """
     Plots the speeds predicted by the network and the FD curve depending on the mean spacing
     :param data_path: path of the file containing the data
@@ -67,18 +93,23 @@ def plot_fd_and_speeds(data_path: str, plot_title: str = "", fd_epochs: int = 50
     fd_data, fd_targets = read_dataset(data_path, fd_training=True)
     nn_data, nn_targets = read_dataset(data_path, fd_training=False)
 
-    # train the FD model
-    model = FD_Network()
-    model.compile(optimizer='sgd', loss='mse')
-    hist = model.fit(x=fd_data, y=fd_targets, epochs=fd_epochs)
-    loss_fd = hist.history['loss']
-
     # train the speed predictor neural network
-    layers = [Dense(units=d, activation='sigmoid') for d in hidden_dims] + [Dense(units=1, activation='linear')]
+    print("Training the NN model..")
+    layers = [Dense(units=d, activation=hidden_activation_func) for d in hidden_dims] + [Dense(units=1, activation='linear')]
     nn = Sequential(layers)
     nn.compile(optimizer='sgd', loss='mse')
     hist = nn.fit(x=nn_data, y=nn_targets, epochs=nn_epochs)
     loss_nn = hist.history['loss']
+
+    # create the speed for FD to learn
+    nn_speeds = nn.predict(x=nn_data)
+
+    # train the FD model
+    print("Training the FD model..")
+    model = FD_Network()
+    model.compile(optimizer='adam', loss='mse')
+    hist = model.fit(x=fd_data, y=nn_speeds, epochs=fd_epochs)
+    loss_fd = hist.history['loss']
 
     # training plots
     if training_plots:
@@ -89,7 +120,7 @@ def plot_fd_and_speeds(data_path: str, plot_title: str = "", fd_epochs: int = 50
         ax[0].set_xlabel("Epochs")
         ax[0].set_ylabel("MSE")
         # NN
-        ax[1].plot(loss_nn)
+        ax[1].plot(loss_nn, c='red')
         ax[1].set_title("NN training")
         ax[1].set_xlabel("Epochs")
         ax[1].set_ylabel("MSE")
@@ -99,10 +130,9 @@ def plot_fd_and_speeds(data_path: str, plot_title: str = "", fd_epochs: int = 50
     stop = np.max(fd_data) * 1.5
     mean_spacings = np.expand_dims(np.linspace(start=0.5, stop=stop, num=1000), axis=1)
     fd_speeds = model.predict(x=mean_spacings)
-    nn_speeds = nn.predict(x=nn_data)
     fig, ax = plt.subplots(1, 1)
     ax.plot(mean_spacings, fd_speeds, c='orange')
-    ax.scatter(nn_data[:, 0], nn_speeds, s=1)
+    ax.scatter(nn_data[:, 0], nn_speeds, s=1, c='red')
     ax.set_xlabel("Mean spacing")
     ax.set_ylabel("Speed")
     fig.suptitle(plot_title)

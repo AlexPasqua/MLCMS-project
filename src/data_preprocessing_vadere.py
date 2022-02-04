@@ -22,13 +22,13 @@ def get_basic_dataset_fields(knn_dataset):
     :return: updated dataset
     """
     knn_df = pd.DataFrame()
-    knn_df['TIME_STEP'] = knn_file[:, 0]
-    knn_df['ID'] = knn_file[:, 1]
-    knn_df['MEAN_SPACING'] = knn_file[:, 2]
+    knn_df['TIME_STEP'] = knn_dataset[:, 0]
+    knn_df['ID'] = knn_dataset[:, 1]
+    knn_df['MEAN_SPACING'] = knn_dataset[:, 2]
     return knn_df
 
 
-def add_relative_positions(knn_df):
+def add_relative_positions(knn_df, knn_file):
     """
     add relative positions of nearest neighbours
     :param knn_df: get dataframe without relative positions
@@ -87,7 +87,7 @@ def create_complete_dataset_vadere(knn_file, time_step, dataset_save_path=None):
     knn_df = get_basic_dataset_fields(knn_file)
 
     # add relative positions of knns wrt to defined pedestrian
-    knn_df = add_relative_positions(knn_df)
+    knn_df = add_relative_positions(knn_df, knn_file)
 
     # add speed of pedestrians
     knn_df = add_speed(knn_df, knn_file, time_step)
