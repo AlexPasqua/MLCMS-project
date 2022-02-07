@@ -232,6 +232,9 @@ def create_dataset(original_data: Union[pd.DataFrame, str], k: int = 10, extende
 
 
 if __name__ == '__main__':
+    original_data_path = "../data/Pedestrian_Trajectories/Corridor_Data/ug-180-015.txt"
+    extended_path = "../data/corridor_15_extended.pickle"
+    save_path = "../data/dataset_corridor_15"
     # original_data_path = "../data/Pedestrian_Trajectories/Corridor_Data/ug-180-030.txt"
     # extended_path = "../data/corridor_30_extended.pickle"
     # save_path = "../data/dataset_corridor_30"
@@ -244,7 +247,7 @@ if __name__ == '__main__':
     # original_data_path = "../data/Pedestrian_Trajectories/Corridor_Data/ug-180-140.txt"
     # extended_path = "../data/corridor_140_extended.pickle"
     # save_path = "../data/dataset_corridor_140"
-    original_data_path = "../data/Pedestrian_Trajectories/Bottleneck_Data/uo-180-180.txt"
-    extended_path = "../data/bottleneck_180_extended.pickle"
-    save_path = "../data/dataset_bottleneck_180"
+    # original_data_path = "../data/Pedestrian_Trajectories/Bottleneck_Data/uo-180-180.txt"
+    # extended_path = "../data/bottleneck_180_extended.pickle"
+    # save_path = "../data/dataset_bottleneck_180"
     dataset = create_dataset(original_data=original_data_path, k=10, extended_save_path=extended_path, dataset_save_path=save_path)

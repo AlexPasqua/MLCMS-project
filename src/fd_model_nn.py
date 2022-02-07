@@ -16,6 +16,7 @@ class FD_Network(tf.keras.Model):
         self.pedestrian_size = tf.keras.layers.Dense(1)
         self.time_gap = tf.keras.layers.Dense(1)
         self.FD_model_parameters = {'t': [], 'l': [], 'v0': []}
+        self.mse = -1
 
     def call(self, mean_spacing):
         """

@@ -30,7 +30,7 @@ def _create_sets_from_folds(data_folds: list, targets_folds: list, val_fold: int
 
 
 def cross_validation(hidden_dims: Tuple[int], data: np.ndarray, targets: np.ndarray, test_data: np.ndarray,
-                     test_targets: np.ndarray, kfolds: int, epochs: int, batch_size):
+                     test_targets: np.ndarray, kfolds: int, epochs: int, batch_size, model=None):
     """
     Performs cross validation
     :param kfolds:
@@ -47,8 +47,9 @@ def cross_validation(hidden_dims: Tuple[int], data: np.ndarray, targets: np.ndar
     callback = EarlyStopping(patience=10)  # default on val_loss
     for val_fold in range(kfolds):
         tr_data, tr_targets, val_data, val_targets = _create_sets_from_folds(data_folds, targets_folds, val_fold)
-        layers = [Dense(units=d, activation='sigmoid') for d in hidden_dims] + [Dense(units=1, activation='linear')]
-        model = Sequential(layers)
+        if model is None:
+            layers = [Dense(units=d, activation='sigmoid') for d in hidden_dims] + [Dense(units=1, activation='linear')]
+            model = Sequential(layers)
         batch_size = batch_size if batch_size is not None else len(tr_data)
         model.compile(optimizer='adam', loss='mse')
         hist = model.fit(x=tr_data, y=tr_targets, epochs=epochs,
@@ -64,7 +65,7 @@ def cross_validation(hidden_dims: Tuple[int], data: np.ndarray, targets: np.ndar
 
 def bootstrapped_cv(hidden_dims: Tuple[int], data: np.ndarray, targets: np.ndarray,
                     test_data: np.ndarray, test_targets: np.ndarray, kfolds: int,
-                    epochs: int, n_bootstraps, bootstrap_dim, batch_size):
+                    epochs: int, n_bootstraps, bootstrap_dim, batch_size, model=None):
     bootstrap_losses = {'tr': [], 'val': [], 'test': []}
     for i in range(n_bootstraps):
         indexes = np.arange(len(data))
@@ -73,7 +74,7 @@ def bootstrapped_cv(hidden_dims: Tuple[int], data: np.ndarray, targets: np.ndarr
         targets_bootstrap = targets[indexes]
         cv_losses = cross_validation(hidden_dims=hidden_dims, data=data_bootstrap, targets=targets_bootstrap,
                                      test_data=test_data, test_targets=test_targets,
-                                     kfolds=kfolds, epochs=epochs, batch_size=batch_size)
+                                     kfolds=kfolds, epochs=epochs, batch_size=batch_size, model=model)
         bootstrap_losses['tr'].append(cv_losses['tr'])
         bootstrap_losses['val'].append(cv_losses['val'])
         bootstrap_losses['test'].append(cv_losses['test'])
@@ -123,7 +124,7 @@ def read_train_test(task: str, base_path: str):
 
 
 if __name__ == '__main__':
-    task = "corridor_30"
+    task = "corridor_15"
     base_path = "../data/training_data/"
 
     training_path = base_path + f"train_{task}_data"
@@ -141,5 +142,5 @@ if __name__ == '__main__':
                                                          test_data=X_test, test_targets=y_test,
                                                          kfolds=5, epochs=1000, batch_size=32, n_bootstraps=10,
                                                          bootstrap_dim=1000)
-    with open("../data/results.txt", "w") as f:
+    with open(f"../data/results_{task}.txt", "w") as f:
         print(res_bootstrap_losses, file=f)
