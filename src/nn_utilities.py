@@ -1,7 +1,11 @@
 import numpy as np
 from typing import Tuple
+
+from sklearn.model_selection import train_test_split
 from tensorflow.keras.models import Sequential, Model
 from tensorflow.keras.layers import Dense
+from tensorflow.keras.callbacks import EarlyStopping
+from utilities import read_dataset
 
 
 def _create_sets_from_folds(data_folds: list, targets_folds: list, val_fold: int):
@@ -25,47 +29,117 @@ def _create_sets_from_folds(data_folds: list, targets_folds: list, val_fold: int
     return tr_data, tr_targets, val_data, val_targets
 
 
-def cross_validation(hidden_dims: Tuple[int], data: np.ndarray, targets: np.ndarray, kfolds: int, epochs: int, batch_size):
+def cross_validation(hidden_dims: Tuple[int], data: np.ndarray, targets: np.ndarray, test_data: np.ndarray,
+                     test_targets: np.ndarray, kfolds: int, epochs: int, batch_size):
     """
     Performs cross validation
     :param kfolds:
     :return:
     """
+    # random shuffle data and split input and output
     indexes = list(range(len(data)))
     np.random.shuffle(indexes)
     data = data[indexes]
     targets = targets[indexes]
-    data_folds = np.array_split(data, kfolds)
-    targets_folds = np.array_split(targets, kfolds)
-    losses = {'tr': [], 'val': []}
+    data_folds = np.array_split(data, kfolds)  # divide the data in k equal folds
+    targets_folds = np.array_split(targets, kfolds)  # divide the data in k equal folds
+    losses = {'tr': [], 'val': [], 'test': []}
+    callback = EarlyStopping(patience=10)  # default on val_loss
     for val_fold in range(kfolds):
         tr_data, tr_targets, val_data, val_targets = _create_sets_from_folds(data_folds, targets_folds, val_fold)
         layers = [Dense(units=d, activation='sigmoid') for d in hidden_dims] + [Dense(units=1, activation='linear')]
         model = Sequential(layers)
         batch_size = batch_size if batch_size is not None else len(tr_data)
         model.compile(optimizer='adam', loss='mse')
-        hist = model.fit(x=tr_data, y=tr_targets, epochs=epochs, batch_size=batch_size, validation_data=(val_data, val_targets))
-        losses['tr'].append(hist.history['loss'])
-        losses['val'].append(hist.history['val_loss'])
-    return {'tr': np.mean(losses['tr']), 'val': np.mean(losses['val'])}
+        hist = model.fit(x=tr_data, y=tr_targets, epochs=epochs,
+                         batch_size=batch_size, validation_data=(val_data, val_targets), callbacks=[callback])
+        losses['tr'].append(hist.history['loss'][-1])
+        losses['val'].append(hist.history['val_loss'][-1])
+
+        # predict on test data
+        pred = model.predict(test_data, batch_size=batch_size)
+        losses['test'].append(np.mean((test_targets - pred)**2))
+    return {'tr': np.mean(losses['tr']), 'val': np.mean(losses['val']), 'test': np.mean(losses['test'])}
 
 
-def bootstrapped_cv(hidden_dims: Tuple[int], data: np.ndarray, targets: np.ndarray, kfolds: int, epochs: int, n_bootstraps, bootstrap_dim, batch_size):
-    bootstrap_losses = {'tr': 0, 'val': 0}
+def bootstrapped_cv(hidden_dims: Tuple[int], data: np.ndarray, targets: np.ndarray,
+                    test_data: np.ndarray, test_targets: np.ndarray, kfolds: int,
+                    epochs: int, n_bootstraps, bootstrap_dim, batch_size):
+    bootstrap_losses = {'tr': [], 'val': [], 'test': []}
     for i in range(n_bootstraps):
         indexes = np.arange(len(data))
         indexes = np.random.choice(indexes, size=bootstrap_dim, replace=True)
         data_bootstrap = data[indexes]
         targets_bootstrap = targets[indexes]
-        cv_losses = cross_validation(hidden_dims=hidden_dims, data=data_bootstrap, targets=targets_bootstrap, kfolds=kfolds, epochs=epochs, batch_size=batch_size)
-        bootstrap_losses['tr'] += cv_losses['tr']
-        bootstrap_losses['val'] += cv_losses['val']
-    bootstrap_losses['tr'] /= n_bootstraps
-    bootstrap_losses['val'] /= n_bootstraps
+        cv_losses = cross_validation(hidden_dims=hidden_dims, data=data_bootstrap, targets=targets_bootstrap,
+                                     test_data=test_data, test_targets=test_targets,
+                                     kfolds=kfolds, epochs=epochs, batch_size=batch_size)
+        bootstrap_losses['tr'].append(cv_losses['tr'])
+        bootstrap_losses['val'].append(cv_losses['val'])
+        bootstrap_losses['test'].append(cv_losses['test'])
+    bootstrap_losses = {'tr': (np.mean(np.array(bootstrap_losses['tr'])), np.std(np.array(bootstrap_losses['tr']))),
+                        'val': (np.mean(np.array(bootstrap_losses['val'])), np.std(np.array(bootstrap_losses['val']))),
+                        'test': (np.mean(np.array(bootstrap_losses['test'])), np.std(np.array(bootstrap_losses['test'])))}
     return bootstrap_losses
+
+def create_and_save_training_testing_data(task: str, base_path: str, test_size=0.5):
+    """
+    check if training data exists, otherwise create it and save it
+    :param task: needed for full path composition
+    :param base_path: directory path
+    :param test_size: percentage of how much of the training set to transform in test
+    :return:
+    """
+    print("Training and testing data do not exist, creating it..")
+    data, targets = read_dataset(f"../data/dataset_{task}")
+    X_train, X_test, y_train, y_test = train_test_split(data, targets, test_size=test_size, random_state=100)
+
+    # save input and output of both training and testing
+    with open(base_path + f"train_{task}_data", 'wb') as f:
+        np.save(f, X_train)
+    with open(base_path + f"train_{task}_targets", 'wb') as f:
+        np.save(f, y_train)
+    with open(base_path + f"test_{task}_data", 'wb') as f:
+        np.save(f, X_test)
+    with open(base_path + f"test_{task}_targets", 'wb') as f:
+        np.save(f, y_test)
+
+def read_train_test(task: str, base_path: str):
+    """
+    read all the data needed for model training
+    :param task: string defining the particular task e.g. bottleneck070
+    :param base_path: directory path
+    :return: training input, training output, test input, test output
+    """
+    with open(base_path + f"train_{task}_data", 'rb') as f:
+        X_train = np.load(f)
+    with open(base_path + f"train_{task}_targets", 'rb') as f:
+        y_train = np.load(f)
+    with open(base_path + f"test_{task}_data", 'rb') as f:
+        X_test = np.load(f)
+    with open(base_path + f"test_{task}_targets", 'rb') as f:
+        y_test = np.load(f)
+    return X_train, y_train, X_test, y_test
 
 
 if __name__ == '__main__':
-    from utilities import read_dataset
-    data, targets = read_dataset("../data/dataset_bottleneck_070")
-    print(bootstrapped_cv(hidden_dims=(3,), data=data, targets=targets, kfolds=5, epochs=20, batch_size=300, n_bootstraps=10, bootstrap_dim=1000))
+    task = "corridor_30"
+    base_path = "../data/training_data/"
+
+    training_path = base_path + f"train_{task}_data"
+    try:
+        f = open(training_path)
+    except IOError:
+        create_and_save_training_testing_data(task, base_path)
+
+    hidden_dims = [(1,), (2,), (3,), (4, 2), (5, 2), (5, 3), (6, 3), (10, 4)]
+    X_train, y_train, X_test, y_test = read_train_test(task, base_path)
+
+    res_bootstrap_losses = {}
+    for h_d in hidden_dims:
+        res_bootstrap_losses[str(h_d)] = bootstrapped_cv(hidden_dims=h_d, data=X_train, targets=y_train,
+                                                         test_data=X_test, test_targets=y_test,
+                                                         kfolds=5, epochs=1000, batch_size=32, n_bootstraps=10,
+                                                         bootstrap_dim=1000)
+    with open("../data/results.txt", "w") as f:
+        print(res_bootstrap_losses, file=f)

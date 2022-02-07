@@ -59,11 +59,12 @@ def plot_fd_and_original(data_path: str, plot_title: str = "", fd_epochs: int = 
     :param data_path: path of the file containing the data
     :param plot_title: title of the plot
     :param fd_epochs: number of epochs of training for the FD
+    :return fd trained model
     """
     fd_data, fd_targets = read_dataset(data_path, fd_training=True)
     # train the FD model
     model = FD_Network()
-    model.compile(optimizer='sgd', loss='mse')
+    model.compile(optimizer='sgd', loss='mse', run_eagerly=True)
     hist = model.fit(x=fd_data, y=fd_targets, epochs=fd_epochs)
 
     # generate the FD speeds with prediction
@@ -78,6 +79,7 @@ def plot_fd_and_original(data_path: str, plot_title: str = "", fd_epochs: int = 
     plt.ylabel("Speed")
     plt.title(plot_title)
     plt.show()
+    return model
 
 def plot_fd_and_speeds(data_path: str, plot_title: str = "", fd_epochs: int = 50, nn_epochs: int = 50, hidden_dims: Tuple[int] = (3,),
                        hidden_activation_func: str = "sigmoid", training_plots: bool = True):

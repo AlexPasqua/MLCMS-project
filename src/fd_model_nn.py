@@ -15,6 +15,7 @@ class FD_Network(tf.keras.Model):
         self.desired_speed = tf.keras.layers.Dense(1)
         self.pedestrian_size = tf.keras.layers.Dense(1)
         self.time_gap = tf.keras.layers.Dense(1)
+        self.FD_model_parameters = {'t': [], 'l': [], 'v0': []}
 
     def call(self, mean_spacing):
         """
@@ -30,4 +31,7 @@ class FD_Network(tf.keras.Model):
         l = tf.keras.activations.softplus(l)
         t = self.time_gap(x)
         t = tf.keras.activations.softplus(t)
+        self.FD_model_parameters['t'].append(tf.math.reduce_mean(t))
+        self.FD_model_parameters['l'].append(tf.math.reduce_mean(l))
+        self.FD_model_parameters['v0'].append(tf.math.reduce_mean(v0))
         return v0 * (1 - tf.exp((l - mean_spacing) / (v0 * t)))
