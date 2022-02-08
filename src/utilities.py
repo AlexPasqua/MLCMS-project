@@ -4,7 +4,8 @@ import matplotlib.pyplot as plt
 from typing import Union, Tuple
 from fd_model_nn import FD_Network
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense
+from tensorflow.keras.layers import Dense, Dropout
+from tensorflow.keras.callbacks import EarlyStopping
 
 
 def read_data(path: Union[pd.DataFrame, str]) -> pd.DataFrame:
@@ -53,7 +54,8 @@ def read_dataset(path: str, fd_training=False) -> (np.ndarray, np.ndarray):
     return mean_spacing.astype(float), targets.astype(float)
 
 
-def plot_fd_and_original(data_path: str, plot_title: str = "", fd_epochs: int = 50, test_data=None, test_targets=None, run_eagerly=False):
+def plot_fd_and_original(data_path: str, plot_title: str = "", fd_epochs: int = 50,
+                         test_data=None, test_targets=None, run_eagerly=False, verbose=1):
     """
     Plots the observed speeds and the ones predicted by the FD model, depending on the mean spacing
     :param data_path: path of the file containing the data
@@ -62,10 +64,15 @@ def plot_fd_and_original(data_path: str, plot_title: str = "", fd_epochs: int = 
     :return fd trained model
     """
     fd_data, fd_targets = read_dataset(data_path, fd_training=True)
+
+
+    # to stop the computation when model is at its cap
+    callback = EarlyStopping(monitor='loss', patience=10)  # default on val_loss
+
     # train the FD model
     model = FD_Network()
     model.compile(optimizer='sgd', loss='mse', run_eagerly=run_eagerly)
-    model.fit(x=fd_data, y=fd_targets, epochs=fd_epochs)
+    model.fit(x=fd_data, y=fd_targets, epochs=fd_epochs, verbose=verbose, callbacks=[callback])
 
     # generate the FD speeds with prediction
     stop = np.max(fd_data) * 1.5
@@ -87,7 +94,7 @@ def plot_fd_and_original(data_path: str, plot_title: str = "", fd_epochs: int = 
     return model
 
 def plot_fd_and_speeds(data_path: str, plot_title: str = "", fd_epochs: int = 50, nn_epochs: int = 50, hidden_dims: Tuple[int] = (3,),
-                       hidden_activation_func: str = "sigmoid", training_plots: bool = True):
+                       hidden_activation_func: str = "sigmoid", dropout = -1, training_plots: bool = True, verbose=1):
     """
     Plots the speeds predicted by the network and the FD curve depending on the mean spacing
     :param data_path: path of the file containing the data
@@ -100,12 +107,24 @@ def plot_fd_and_speeds(data_path: str, plot_title: str = "", fd_epochs: int = 50
     fd_data, fd_targets = read_dataset(data_path, fd_training=True)
     nn_data, nn_targets = read_dataset(data_path, fd_training=False)
 
+    # to stop the computation when model is at its cap
+    callback = EarlyStopping(monitor='loss', patience=10)  # default on val_loss
+
     # train the speed predictor neural network
     print("Training the NN model..")
     layers = [Dense(units=d, activation=hidden_activation_func) for d in hidden_dims] + [Dense(units=1, activation='linear')]
+
+    # add dropout if needed
+    if dropout != -1:  # user asks for dropout
+        if dropout >= 1:
+            print("Dropout value is too high (has to be less than 1)")
+            for i in range(len(layers)):
+                if type(layers[i]) == Dense and i != len(layers) - 1:
+                    layers.insert(i + 1, Dropout(0.2))
+
     nn = Sequential(layers)
     nn.compile(optimizer='sgd', loss='mse')
-    hist = nn.fit(x=nn_data, y=nn_targets, epochs=nn_epochs)
+    hist = nn.fit(x=nn_data, y=nn_targets, epochs=nn_epochs, callbacks=[callback], verbose=verbose)
     loss_nn = hist.history['loss']
 
     # create the speed for FD to learn
@@ -115,7 +134,7 @@ def plot_fd_and_speeds(data_path: str, plot_title: str = "", fd_epochs: int = 50
     print("Training the FD model..")
     model = FD_Network()
     model.compile(optimizer='adam', loss='mse')
-    hist = model.fit(x=fd_data, y=nn_speeds, epochs=fd_epochs)
+    hist = model.fit(x=fd_data, y=nn_speeds, epochs=fd_epochs, callbacks=[callback], verbose=verbose)
     loss_fd = hist.history['loss']
 
     # training plots

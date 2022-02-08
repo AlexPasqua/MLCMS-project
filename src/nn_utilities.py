@@ -3,7 +3,7 @@ from typing import Tuple
 
 from sklearn.model_selection import train_test_split
 from tensorflow.keras.models import Sequential, Model
-from tensorflow.keras.layers import Dense
+from tensorflow.keras.layers import Dense, Dropout
 from tensorflow.keras.callbacks import EarlyStopping
 from utilities import read_dataset
 
@@ -30,7 +30,7 @@ def _create_sets_from_folds(data_folds: list, targets_folds: list, val_fold: int
 
 
 def cross_validation(hidden_dims: Tuple[int], data: np.ndarray, targets: np.ndarray, test_data: np.ndarray,
-                     test_targets: np.ndarray, kfolds: int, epochs: int, batch_size, model=None):
+                     test_targets: np.ndarray, kfolds: int, epochs: int, batch_size, dropout=-1, model=None):
     """
     Performs cross validation
     :param kfolds:
@@ -49,6 +49,13 @@ def cross_validation(hidden_dims: Tuple[int], data: np.ndarray, targets: np.ndar
         tr_data, tr_targets, val_data, val_targets = _create_sets_from_folds(data_folds, targets_folds, val_fold)
         if model is None:
             layers = [Dense(units=d, activation='sigmoid') for d in hidden_dims] + [Dense(units=1, activation='linear')]
+            # add dropout if needed
+            if dropout != -1:  # user asks for dropout
+                if dropout >= 1:
+                    print("Dropout value is too high (has to be less than 1)")
+                    for i in range(len(layers)):
+                        if type(layers[i]) == Dense and i != len(layers) - 1:
+                            layers.insert(i + 1, Dropout(0.2))
             model = Sequential(layers)
         batch_size = batch_size if batch_size is not None else len(tr_data)
         model.compile(optimizer='adam', loss='mse')
@@ -65,7 +72,7 @@ def cross_validation(hidden_dims: Tuple[int], data: np.ndarray, targets: np.ndar
 
 def bootstrapped_cv(hidden_dims: Tuple[int], data: np.ndarray, targets: np.ndarray,
                     test_data: np.ndarray, test_targets: np.ndarray, kfolds: int,
-                    epochs: int, n_bootstraps, bootstrap_dim, batch_size, model=None):
+                    epochs: int, n_bootstraps, bootstrap_dim, batch_size, dropout=-1, model=None):
     bootstrap_losses = {'tr': [], 'val': [], 'test': []}
     for i in range(n_bootstraps):
         indexes = np.arange(len(data))
@@ -73,7 +80,7 @@ def bootstrapped_cv(hidden_dims: Tuple[int], data: np.ndarray, targets: np.ndarr
         data_bootstrap = data[indexes]
         targets_bootstrap = targets[indexes]
         cv_losses = cross_validation(hidden_dims=hidden_dims, data=data_bootstrap, targets=targets_bootstrap,
-                                     test_data=test_data, test_targets=test_targets,
+                                     test_data=test_data, test_targets=test_targets, dropout=dropout,
                                      kfolds=kfolds, epochs=epochs, batch_size=batch_size, model=model)
         bootstrap_losses['tr'].append(cv_losses['tr'])
         bootstrap_losses['val'].append(cv_losses['val'])
@@ -124,7 +131,7 @@ def read_train_test(task: str, base_path: str):
 
 
 if __name__ == '__main__':
-    task = "corridor_15"
+    task = "corridor_85"
     base_path = "../data/training_data/"
 
     training_path = base_path + f"train_{task}_data"
@@ -133,14 +140,15 @@ if __name__ == '__main__':
     except IOError:
         create_and_save_training_testing_data(task, base_path)
 
-    hidden_dims = [(1,), (2,), (3,), (4, 2), (5, 2), (5, 3), (6, 3), (10, 4)]
+    hidden_dims = [(1,), (2,), (3,), (4, 2), (5, 2), (5, 3), (6, 3), (10, 4)]  #[(1,), (2,), (3,), (4, 2), (5, 2), (5, 3), (6, 3), (10, 4)]
+    dropouts = [-1, -1, -1, 0.4, 0.4, 0.4, 0.4, 0.4]
     X_train, y_train, X_test, y_test = read_train_test(task, base_path)
 
     res_bootstrap_losses = {}
-    for h_d in hidden_dims:
-        res_bootstrap_losses[str(h_d)] = bootstrapped_cv(hidden_dims=h_d, data=X_train, targets=y_train,
-                                                         test_data=X_test, test_targets=y_test,
-                                                         kfolds=5, epochs=1000, batch_size=32, n_bootstraps=10,
-                                                         bootstrap_dim=1000)
-    with open(f"../data/results_{task}.txt", "w") as f:
+    for i in range(len(hidden_dims)):
+        res_bootstrap_losses[str(hidden_dims[i])+"-"+str(dropouts[i])] = bootstrapped_cv(hidden_dims=hidden_dims[i],
+                                                         data=X_train, targets=y_train, test_data=X_test,
+                                                         test_targets=y_test, kfolds=5, epochs=1000, batch_size=32,
+                                                         n_bootstraps=10, bootstrap_dim=1000, dropout=dropouts[i])
+    with open(f"../data/results_{task}_dropouts.txt", "w") as f:
         print(res_bootstrap_losses, file=f)
