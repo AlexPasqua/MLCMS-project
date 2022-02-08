@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 
 
-def get_time_delta(base_path):
+def get_time_delta(base_path: str) -> float:
     """
     time deltas between measurements are different because of the simulation, this function returns the minimum of all
     deltas as approximation
@@ -15,11 +15,11 @@ def get_time_delta(base_path):
     return min(set([round(i, 1) for i in time_delta]))
 
 
-def get_basic_dataset_fields(knn_dataset):
+def get_basic_dataset_fields(knn_dataset: np.ndarray) -> pd.DataFrame:
     """
     set time_step, id and mean_spacing fields
-    :param knn_dataset:
-    :return: updated dataset
+    :param knn_dataset: numpy ndarray containing data regarding a pedestrian and its knn at a certain frame
+    :return: updated dataset as a pandas Dataframe
     """
     knn_df = pd.DataFrame()
     knn_df['TIME_STEP'] = knn_dataset[:, 0]
@@ -28,10 +28,11 @@ def get_basic_dataset_fields(knn_dataset):
     return knn_df
 
 
-def add_relative_positions(knn_df, knn_file):
+def add_relative_positions(knn_df: pd.DataFrame, knn_file: np.ndarray) -> pd.DataFrame:
     """
     add relative positions of nearest neighbours
     :param knn_df: get dataframe without relative positions
+    :param knn_file: file original out of vadere elaboration
     :return: get dataframe with relative positions
     """
     knn_positions = knn_file[:, 3:-2]  # already relative positions
@@ -43,7 +44,7 @@ def add_relative_positions(knn_df, knn_file):
     return knn_df
 
 
-def add_speed(knn_df, knn_file, time_step):
+def add_speed(knn_df: pd.DataFrame, knn_file: np.ndarray, time_step: float) -> pd.DataFrame:
     """
     add speed to each row (last row of each pedestrians and rows with pedestrians staying still)
     :param knn_df: dataframe without pedestrian speeds
@@ -74,7 +75,7 @@ def add_speed(knn_df, knn_file, time_step):
     return knn_df
 
 
-def create_complete_dataset_vadere(knn_file, time_step, dataset_save_path=None):
+def create_complete_dataset_vadere(knn_file: np.ndarray, time_step: float, dataset_save_path: str = None):
     """
     Return a vadere dataset (and save it if required), ready with the input and output field for the NN
     file can be fed to NN simply calling utilities.read_dataset on the saved pickle path

@@ -99,7 +99,7 @@ def _add_speeds(data: Union[pd.DataFrame, str], frame_rate: float = 16) -> pd.Da
     return data
 
 
-def _create_relative_neighbours_df(extended_data):
+def _create_relative_neighbours_df(extended_data: pd.DataFrame) -> pd.DataFrame:
     """
     Construct the relative positions of every k nearest neighbour wrt the reference pedestrian
     :param extended_data: data complete of neighbour positions and reference position
@@ -193,8 +193,7 @@ def create_extended_dataframe(original_data: Union[pd.DataFrame, str], save_path
     return extended_df
 
 
-def create_dataset(original_data: Union[pd.DataFrame, str], k: int = 10, extended_save_path: str = None,
-                   dataset_save_path: str = None) -> pd.DataFrame:
+def create_dataset(original_data: Union[pd.DataFrame, str], k: int = 10, extended_save_path: str = None, dataset_save_path: str = None) -> pd.DataFrame:
     """
     Creates the dataset for the NN starting from the raw data
     :param original_data: original data as a pandas dataframe or path to the file containing the data

@@ -1,6 +1,5 @@
 import numpy as np
 from typing import Tuple
-
 from sklearn.model_selection import train_test_split
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout
@@ -143,7 +142,7 @@ def read_train_test(task: str, base_path: str):
 
 
 if __name__ == '__main__':
-    task = "corridor_85"
+    task = "bottleneck_070"
     base_path = "../data/training_data/"
 
     training_path = base_path + f"train_{task}_data"
@@ -153,7 +152,7 @@ if __name__ == '__main__':
         create_and_save_training_testing_data(task, base_path)
 
     hidden_dims = [(1,), (2,), (3,), (4, 2), (5, 2), (5, 3), (6, 3), (10, 4)]  #[(1,), (2,), (3,), (4, 2), (5, 2), (5, 3), (6, 3), (10, 4)]
-    dropouts = [-1, -1, -1, 0.4, 0.4, 0.4, 0.4, 0.4]
+    dropouts = [-1, -1, -1, -1, -1, -1, -1, -1]
     X_train, y_train, X_test, y_test = read_train_test(task, base_path)
 
     res_bootstrap_losses = {}
@@ -162,5 +161,5 @@ if __name__ == '__main__':
                                                          data=X_train, targets=y_train, test_data=X_test,
                                                          test_targets=y_test, kfolds=5, epochs=1000, batch_size=32,
                                                          n_bootstraps=10, bootstrap_dim=1000, dropout=dropouts[i])
-    with open(f"../data/results_{task}_dropouts.txt", "w") as f:
+    with open(f"../data/results_{task}.txt", "w") as f:
         print(res_bootstrap_losses, file=f)
