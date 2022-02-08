@@ -53,7 +53,7 @@ def read_dataset(path: str, fd_training=False) -> (np.ndarray, np.ndarray):
     return mean_spacing.astype(float), targets.astype(float)
 
 
-def plot_fd_and_original(data_path: str, plot_title: str = "", fd_epochs: int = 50, test_data=None, test_targets=None):
+def plot_fd_and_original(data_path: str, plot_title: str = "", fd_epochs: int = 50, test_data=None, test_targets=None, run_eagerly=False):
     """
     Plots the observed speeds and the ones predicted by the FD model, depending on the mean spacing
     :param data_path: path of the file containing the data
@@ -64,13 +64,13 @@ def plot_fd_and_original(data_path: str, plot_title: str = "", fd_epochs: int = 
     fd_data, fd_targets = read_dataset(data_path, fd_training=True)
     # train the FD model
     model = FD_Network()
-    model.compile(optimizer='sgd', loss='mse', run_eagerly=True)
+    model.compile(optimizer='sgd', loss='mse', run_eagerly=run_eagerly)
     model.fit(x=fd_data, y=fd_targets, epochs=fd_epochs)
 
     # generate the FD speeds with prediction
     stop = np.max(fd_data) * 1.5
     mean_spacings = np.expand_dims(np.linspace(start=0.5, stop=stop, num=1000), axis=1)
-    if test_data is None:
+    if test_data is not None:
         mean_spacings = test_data
     fd_speeds = model.predict(x=mean_spacings)
     if test_targets is not None:
