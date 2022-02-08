@@ -242,51 +242,6 @@ def train_both_models(task_train, task_test):
     X_train, y_train, fd_x_train = _get_data_for_train_both_models(base_path=base_path, task_data=task_train, train=True)
     X_test, y_test, fd_x_test = _get_data_for_train_both_models(base_path=base_path, task_data=task_test, train=False)
 
-    # X_t, y_t = None, None
-    # fd_x_t = None
-    # for train_data in task_train:
-    #     training_path = base_path + f"train_{train_data}_data"
-    #     try:
-    #         f = open(training_path)
-    #     except IOError:
-    #         create_and_save_training_testing_data(train_data, base_path)
-    #
-    #     X_train, y_train, _, _ = read_train_test(train_data, base_path)
-    #     fd_x_train = X_train[:, 0].reshape(-1, 1)
-    #
-    #     if X_t is None:
-    #         X_t = X_train
-    #         y_t = y_train
-    #         fd_x_t = fd_x_train
-    #     else:
-    #         X_t = np.concatenate((X_t, X_train), axis=0)
-    #         y_t = np.concatenate((y_t, y_train), axis=0)
-    #         fd_x_t = np.concatenate((fd_x_t, fd_x_train), axis=0)
-    #
-    # X_train, y_train, fd_x_train = X_t, y_t, fd_x_t
-    #
-    # X_t, y_t = None, None
-    # fd_x_t = None
-    # for test_data in task_test:
-    #     testing_path = base_path + f"train_{test_data}_data"
-    #     try:
-    #         f = open(testing_path)
-    #     except IOError:
-    #         create_and_save_training_testing_data(test_data, base_path)
-    #
-    #     _, _, X_test, y_test = read_train_test(test_data, base_path)
-    #     fd_x_test = X_test[:, 0].reshape(-1, 1)
-    #
-    #     if X_t is None:
-    #         X_t = X_test
-    #         y_t = y_test
-    #         fd_x_t = fd_x_test
-    #     else:
-    #         X_t = np.concatenate((X_t, X_test), axis=0)
-    #         y_t = np.concatenate((y_t, y_test), axis=0)
-    #         fd_x_t = np.concatenate((fd_x_t, fd_x_test), axis=0)
-    # X_test, y_test, fd_x_test = X_t, y_t, fd_x_t
-
     # train fd
     model = FD_Network()
     fd_losses = bootstrapped_cv(hidden_dims=None, data=fd_x_train, targets=y_train, test_data=fd_x_test, test_targets=y_test,
