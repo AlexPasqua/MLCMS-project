@@ -81,8 +81,7 @@ def cross_validation(hidden_dims: Tuple[int], data: np.ndarray, targets: np.ndar
     return {'tr': np.mean(losses['tr']), 'val': np.mean(losses['val']), 'test': np.mean(losses['test'])}
 
 
-def bootstrapped_cv(hidden_dims: Tuple[int], data: np.ndarray, targets: np.ndarray,
-                    test_data: np.ndarray, test_targets: np.ndarray, kfolds: int,
+def bootstrapped_cv(hidden_dims: Tuple[int], data: np.ndarray, targets: np.ndarray, test_data: np.ndarray, test_targets: np.ndarray, kfolds: int,
                     epochs: int, n_bootstraps, bootstrap_dim, batch_size, dropout=-1, model=None):
     bootstrap_losses = {'tr': [], 'val': [], 'test': []}
     for i in range(n_bootstraps):
@@ -100,6 +99,7 @@ def bootstrapped_cv(hidden_dims: Tuple[int], data: np.ndarray, targets: np.ndarr
                         'val': (np.mean(np.array(bootstrap_losses['val'])), np.std(np.array(bootstrap_losses['val']))),
                         'test': (np.mean(np.array(bootstrap_losses['test'])), np.std(np.array(bootstrap_losses['test'])))}
     return bootstrap_losses
+
 
 def create_and_save_training_testing_data(task: str, base_path: str, test_size=0.5):
     """
@@ -122,6 +122,7 @@ def create_and_save_training_testing_data(task: str, base_path: str, test_size=0
         np.save(f, X_test)
     with open(base_path + f"test_{task}_targets", 'wb') as f:
         np.save(f, y_test)
+
 
 def read_train_test(task: str, base_path: str):
     """
