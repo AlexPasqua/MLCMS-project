@@ -2,10 +2,10 @@ import numpy as np
 from typing import Tuple
 
 from sklearn.model_selection import train_test_split
-from tensorflow.keras.models import Sequential, Model
+from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout
 from tensorflow.keras.callbacks import EarlyStopping
-from utilities import read_dataset
+from utilities import *
 
 
 def _create_sets_from_folds(data_folds: list, targets_folds: list, val_fold: int):
@@ -29,6 +29,25 @@ def _create_sets_from_folds(data_folds: list, targets_folds: list, val_fold: int
     return tr_data, tr_targets, val_data, val_targets
 
 
+def create_nn(hidden_dims, dropout=-1):
+    """
+    Create feed-forward fully-connected neural network with eventual dropout
+    :param hidden_dims:
+    :param dropout:
+    :return:
+    """
+    layers = [Dense(units=d, activation='sigmoid') for d in hidden_dims] + [Dense(units=1, activation='linear')]
+    # add dropout if needed
+    if dropout != -1:  # user asks for dropout
+        if dropout >= 1:
+            print("Dropout value is too high (has to be less than 1)")
+            for i in range(len(layers)):
+                if type(layers[i]) == Dense and i != len(layers) - 1:
+                    layers.insert(i + 1, Dropout(0.2))
+    model = Sequential(layers)
+    return model
+
+
 def cross_validation(hidden_dims: Tuple[int], data: np.ndarray, targets: np.ndarray, test_data: np.ndarray,
                      test_targets: np.ndarray, kfolds: int, epochs: int, batch_size, dropout=-1, model=None):
     """
@@ -48,15 +67,7 @@ def cross_validation(hidden_dims: Tuple[int], data: np.ndarray, targets: np.ndar
     for val_fold in range(kfolds):
         tr_data, tr_targets, val_data, val_targets = _create_sets_from_folds(data_folds, targets_folds, val_fold)
         if model is None:
-            layers = [Dense(units=d, activation='sigmoid') for d in hidden_dims] + [Dense(units=1, activation='linear')]
-            # add dropout if needed
-            if dropout != -1:  # user asks for dropout
-                if dropout >= 1:
-                    print("Dropout value is too high (has to be less than 1)")
-                    for i in range(len(layers)):
-                        if type(layers[i]) == Dense and i != len(layers) - 1:
-                            layers.insert(i + 1, Dropout(0.2))
-            model = Sequential(layers)
+            model = create_nn(hidden_dims=hidden_dims, dropout=dropout)
         batch_size = batch_size if batch_size is not None else len(tr_data)
         model.compile(optimizer='adam', loss='mse')
         hist = model.fit(x=tr_data, y=tr_targets, epochs=epochs,

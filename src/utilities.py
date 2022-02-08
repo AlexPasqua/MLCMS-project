@@ -1,11 +1,8 @@
-import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from typing import Union, Tuple
 from fd_model_nn import FD_Network
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Dropout
-from tensorflow.keras.callbacks import EarlyStopping
+from nn_utilities import *
 
 
 def read_data(path: Union[pd.DataFrame, str]) -> pd.DataFrame:
@@ -112,17 +109,7 @@ def plot_fd_and_speeds(data_path: str, plot_title: str = "", fd_epochs: int = 50
 
     # train the speed predictor neural network
     print("Training the NN model..")
-    layers = [Dense(units=d, activation=hidden_activation_func) for d in hidden_dims] + [Dense(units=1, activation='linear')]
-
-    # add dropout if needed
-    if dropout != -1:  # user asks for dropout
-        if dropout >= 1:
-            print("Dropout value is too high (has to be less than 1)")
-            for i in range(len(layers)):
-                if type(layers[i]) == Dense and i != len(layers) - 1:
-                    layers.insert(i + 1, Dropout(0.2))
-
-    nn = Sequential(layers)
+    nn = create_nn(hidden_dims, dropout=dropout)
     nn.compile(optimizer='sgd', loss='mse')
     hist = nn.fit(x=nn_data, y=nn_targets, epochs=nn_epochs, callbacks=[callback], verbose=verbose)
     loss_nn = hist.history['loss']
