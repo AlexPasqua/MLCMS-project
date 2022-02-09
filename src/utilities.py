@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from typing import Union, Tuple
 from fd_model_nn import FD_Network
 from nn_utilities import *
+from nn_utilities import read_train_test
 
 
 def read_data(path: Union[pd.DataFrame, str]) -> pd.DataFrame:
@@ -245,11 +246,11 @@ def train_both_models(task_train, task_test):
     # train fd
     model = FD_Network()
     fd_losses = bootstrapped_cv(hidden_dims=None, data=fd_x_train, targets=y_train, test_data=fd_x_test, test_targets=y_test,
-                                kfolds=5, epochs=1000, batch_size=32, n_bootstraps=15, bootstrap_dim=1000, model=model)
+                                kfolds=5, epochs=1000, batch_size=32, n_bootstraps=5, bootstrap_dim=5000, model=model)
     # train speed nn
     hidden_dims = (3,)
     nn_losses = bootstrapped_cv(hidden_dims=hidden_dims, data=X_train, targets=y_train, test_data=X_test, test_targets=y_test,
-                                kfolds=5, epochs=1000, batch_size=32, n_bootstraps=15, bootstrap_dim=1000)
+                                kfolds=5, epochs=1000, batch_size=32, n_bootstraps=5, bootstrap_dim=5000)
 
     # once we have the selection stats, train an nn on the whole train to give predictions needed for FD model training
     nn = create_nn(hidden_dims, dropout=-1)
@@ -262,7 +263,7 @@ def train_both_models(task_train, task_test):
     # train fd
     model = FD_Network()
     fd_prediction_losses = bootstrapped_cv(hidden_dims=None, data=fd_x_train, targets=fd_nn_prediction_speeds, test_data=fd_x_test,
-                                           test_targets=y_test, kfolds=5, epochs=1000, batch_size=32, n_bootstraps=15, bootstrap_dim=1000,
+                                           test_targets=y_test, kfolds=5, epochs=1000, batch_size=32, n_bootstraps=5, bootstrap_dim=5000,
                                            model=model)
     return nn_losses, fd_losses, fd_prediction_losses
 
@@ -409,7 +410,7 @@ def train_both_models(task_train, task_test):
 
     # once we have the selection stats, train an nn on the whole train to give predictions needed for FD model training
     nn = create_nn(hidden_dims, dropout=-1)
-    nn.compile(optimizer='sgd', loss='mse')
+    nn.compile(optimizer='adam', loss='mse')
     # to stop the computation when model is at its cap
     callback = EarlyStopping(monitor='loss', patience=10)  # default on val_loss
     nn.fit(x=X_train, y=y_train, epochs=1000, callbacks=[callback], verbose=0)

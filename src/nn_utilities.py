@@ -40,9 +40,11 @@ def create_nn(hidden_dims, dropout=-1):
     if dropout != -1:  # user asks for dropout
         if dropout >= 1:
             print("Dropout value is too high (has to be less than 1)")
-            for i in range(len(layers)):
-                if type(layers[i]) == Dense and i != len(layers) - 1:
-                    layers.insert(i + 1, Dropout(0.2))
+        else:
+            for j in range(len(layers)):
+                if type(layers[j]) == Dense and j != len(layers) - 1:
+                    layers.insert(j + 1, Dropout(dropout))
+            print("Added dropout:", layers)
     model = Sequential(layers)
     return model
 
@@ -142,7 +144,8 @@ def read_train_test(task: str, base_path: str):
 
 
 if __name__ == '__main__':
-    task = "bottleneck_070"
+    tasks = ["corridor_30", "corridor_85", "corridor_140", "bottleneck_070", "bottleneck_120", "bottleneck_180"]
+    task = tasks[5]
     base_path = "../data/training_data/"
 
     training_path = base_path + f"train_{task}_data"
@@ -150,6 +153,8 @@ if __name__ == '__main__':
         f = open(training_path)
     except IOError:
         create_and_save_training_testing_data(task, base_path)
+        
+    print("Working on task:", task)
 
     hidden_dims = [(1,), (2,), (3,), (4, 2), (5, 2), (5, 3), (6, 3), (10, 4)]  #[(1,), (2,), (3,), (4, 2), (5, 2), (5, 3), (6, 3), (10, 4)]
     dropouts = [-1, -1, -1, -1, -1, -1, -1, -1]
@@ -160,6 +165,6 @@ if __name__ == '__main__':
         res_bootstrap_losses[str(hidden_dims[i])+"-"+str(dropouts[i])] = bootstrapped_cv(hidden_dims=hidden_dims[i],
                                                          data=X_train, targets=y_train, test_data=X_test,
                                                          test_targets=y_test, kfolds=5, epochs=1000, batch_size=32,
-                                                         n_bootstraps=10, bootstrap_dim=1000, dropout=dropouts[i])
+                                                         n_bootstraps=5, bootstrap_dim=5000, dropout=dropouts[i])
     with open(f"../data/results_{task}.txt", "w") as f:
         print(res_bootstrap_losses, file=f)
