@@ -5,7 +5,6 @@ from typing import Union, Tuple
 import nn_utilities
 from fd_model_nn import FD_Network
 from nn_utilities import *
-from nn_utilities import read_train_test
 
 
 def read_data(path: Union[pd.DataFrame, str]) -> pd.DataFrame:

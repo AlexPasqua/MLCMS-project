@@ -172,7 +172,7 @@ def read_train_test(task: str, base_path: str):
 
 
 if __name__ == '__main__':
-    task = "corridor_85"
+    task = "bottleneck_070"
     base_path = "../data/training_data/"
 
     training_path = base_path + f"train_{task}_data"
@@ -182,14 +182,14 @@ if __name__ == '__main__':
         create_and_save_training_testing_data(task, base_path)
 
     hidden_dims = [(1,), (2,), (3,), (4, 2), (5, 2), (5, 3), (6, 3), (10, 4)]
-    dropouts = [-1, -1, -1, 0.3, 0.3, 0.3, 0.3, 0.3]
+    dropouts = [-1, -1, -1, 0.1, 0.1, 0.1, 0.1, 0.1]
     X_train, y_train, X_test, y_test = read_train_test(task, base_path)
 
     res_bootstrap_losses = {}
     for i in range(len(hidden_dims)):
         res_bootstrap_losses[str(hidden_dims[i])+"-"+str(dropouts[i])] = bootstrapped_cv(hidden_dims=hidden_dims[i], data=X_train, targets=y_train,
                                                                                          test_data=X_test, test_targets=y_test, kfolds=5, epochs=1000,
-                                                                                         batch_size=32, n_bootstraps=10, bootstrap_dim=1000,
+                                                                                         batch_size=32, n_bootstraps=5, bootstrap_dim=5000,
                                                                                          dropout=dropouts[i])
-    with open(f"../data/results_{task}_dropout.txt", "w") as f:
+    with open(f"../data/results_{task}_dropout-0.1.txt", "w") as f:
         print(res_bootstrap_losses, file=f)
