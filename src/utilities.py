@@ -1,9 +1,10 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 from typing import Union, Tuple
+
+import nn_utilities
 from fd_model_nn import FD_Network
 from nn_utilities import *
-from nn_utilities import read_train_test
 
 
 def read_data(path: Union[pd.DataFrame, str]) -> pd.DataFrame:
@@ -63,7 +64,6 @@ def plot_fd_and_original(data_path: str, plot_title: str = "", fd_epochs: int = 
     """
     fd_data, fd_targets = read_dataset(data_path, fd_training=True)
 
-
     # to stop the computation when model is at its cap
     callback = EarlyStopping(monitor='loss', patience=10)  # default on val_loss
 
@@ -79,8 +79,7 @@ def plot_fd_and_original(data_path: str, plot_title: str = "", fd_epochs: int = 
         mean_spacings = test_data
     fd_speeds = model.predict(x=mean_spacings)
     if test_targets is not None:
-        model.mse = np.mean((fd_speeds-test_targets)**2)
-
+        model.mse = np.mean((fd_speeds - test_targets) ** 2)
 
     # plot the FD prediction over the observations
     plt.plot(mean_spacings, fd_speeds, c='orange')  # fd model data
@@ -93,7 +92,7 @@ def plot_fd_and_original(data_path: str, plot_title: str = "", fd_epochs: int = 
 
 
 def plot_fd_and_speeds(data_path: str, plot_title: str = "", fd_epochs: int = 50, nn_epochs: int = 50, hidden_dims: Tuple[int] = (3,),
-                       hidden_activation_func: str = "sigmoid", dropout = -1, training_plots: bool = True, run_eagerly=False, verbose=1):
+                       hidden_activation_func: str = "sigmoid", dropout=-1, training_plots: bool = True, run_eagerly=False, verbose=1):
     """
     Plots the speeds predicted by the network and the FD curve depending on the mean spacing
     :param data_path: path of the file containing the data
@@ -354,51 +353,6 @@ def train_both_models(task_train, task_test):
     X_train, y_train, fd_x_train = _get_data_for_train_both_models(base_path=base_path, task_data=task_train, train=True)
     X_test, y_test, fd_x_test = _get_data_for_train_both_models(base_path=base_path, task_data=task_test, train=False)
 
-    # X_t, y_t = None, None
-    # fd_x_t = None
-    # for train_data in task_train:
-    #     training_path = base_path + f"train_{train_data}_data"
-    #     try:
-    #         f = open(training_path)
-    #     except IOError:
-    #         create_and_save_training_testing_data(train_data, base_path)
-    #
-    #     X_train, y_train, _, _ = read_train_test(train_data, base_path)
-    #     fd_x_train = X_train[:, 0].reshape(-1, 1)
-    #
-    #     if X_t is None:
-    #         X_t = X_train
-    #         y_t = y_train
-    #         fd_x_t = fd_x_train
-    #     else:
-    #         X_t = np.concatenate((X_t, X_train), axis=0)
-    #         y_t = np.concatenate((y_t, y_train), axis=0)
-    #         fd_x_t = np.concatenate((fd_x_t, fd_x_train), axis=0)
-    #
-    # X_train, y_train, fd_x_train = X_t, y_t, fd_x_t
-    #
-    # X_t, y_t = None, None
-    # fd_x_t = None
-    # for test_data in task_test:
-    #     testing_path = base_path + f"train_{test_data}_data"
-    #     try:
-    #         f = open(testing_path)
-    #     except IOError:
-    #         create_and_save_training_testing_data(test_data, base_path)
-    #
-    #     _, _, X_test, y_test = read_train_test(test_data, base_path)
-    #     fd_x_test = X_test[:, 0].reshape(-1, 1)
-    #
-    #     if X_t is None:
-    #         X_t = X_test
-    #         y_t = y_test
-    #         fd_x_t = fd_x_test
-    #     else:
-    #         X_t = np.concatenate((X_t, X_test), axis=0)
-    #         y_t = np.concatenate((y_t, y_test), axis=0)
-    #         fd_x_t = np.concatenate((fd_x_t, fd_x_test), axis=0)
-    # X_test, y_test, fd_x_test = X_t, y_t, fd_x_t
-
     # train fd
     model = FD_Network()
     fd_losses = bootstrapped_cv(hidden_dims=None, data=fd_x_train, targets=y_train, test_data=fd_x_test, test_targets=y_test,
@@ -422,6 +376,95 @@ def train_both_models(task_train, task_test):
                                            test_targets=y_test, kfolds=5, epochs=1000, batch_size=32, n_bootstraps=15, bootstrap_dim=1000,
                                            model=model)
     return nn_losses, fd_losses, fd_prediction_losses
+
+
+def svd(data: Union[np.ndarray, pd.DataFrame], center=False):
+    """
+    Compute the Singular Value Decomposition (SVD) of the "data"
+    :param data: data to compute the SVD of
+    :param center: if True, center the data before performing SVD
+    :returns: the 3 matrices forming the SVD decomposition of "data"
+    """
+    # make the data a numpy ndarray (if it isn't already)
+    if isinstance(data, pd.DataFrame):
+        data = data.to_numpy()
+
+    # center the data by removing the mean
+    if center:
+        data = data - np.mean(data, axis=0)
+
+    # decompose the data through SVD decomposition
+    U, singular_values, Vt = np.linalg.svd(data)  # note that V is already transpose
+    # starting from a vector containing the singular values, create the S matrix
+    S = np.vstack((
+        np.diag(singular_values),
+        np.zeros(shape=(data.shape[0] - len(singular_values), len(singular_values)))
+    ))
+    return U, S, Vt.T, singular_values
+
+
+def train_nn_on_pca_data(base_data_path: str, task: str, energy_perc: float, bootstrap_dim: int, hidden_dims: Tuple[int] = (3,), kfolds: int = 5,
+                         epochs: int = 100, batch_size: int = 32, n_train_data: int = None, n_test_data: int = None, n_bootstraps: int = 5) -> Tuple[
+    dict, dict]:
+    """
+
+    :param base_data_path:
+    :param task:
+    :param energy_perc:
+    :param bootstrap_dim:
+    :param hidden_dims:
+    :param kfolds:
+    :param epochs:
+    :param batch_size:
+    :param n_train_data:
+    :param n_test_data:
+    :param n_bootstraps:
+    :return:
+    """
+    # read and eventually cut the data for a quicker PCA computation
+    X_train, y_train, X_test, y_test = nn_utilities.read_train_test(task, base_data_path)
+    n_train_data = n_train_data if n_train_data is not None else len(X_train)
+    n_test_data = n_test_data if n_test_data is not None else len(X_test)
+    X_train, y_train, X_test, y_test = X_train[:n_train_data], y_train[:n_train_data], X_test[:n_test_data], y_test[:n_test_data]
+
+    # compute SVD of training and testing data
+    U_tr, S_tr, V_tr, singular_values_tr = svd(X_train)
+    U_ts, S_ts, V_ts, _ = svd(X_test)
+
+    # check the energy contained in each singular value
+    tot = np.sum(singular_values_tr)
+    cum_perc = 0
+    n_sufficient = len(singular_values_tr)
+    for i, value in enumerate(singular_values_tr):
+        perc = value * 100 / tot
+        print(f"Singular value {i + 1}: {perc:.3f}% of the energy")
+        cum_perc += perc
+        if cum_perc >= energy_perc:
+            n_sufficient = i + 1
+            break
+    print(f"{n_sufficient} singular values are enough to capture {cum_perc}% of the energy")
+
+    # reconstruct the data using only the first 'n_sufficient' singular values
+    S_tr = S_tr[:, :n_sufficient]
+    S_ts = S_ts[:, :n_sufficient]
+    V_tr = V_tr[:n_sufficient, :n_sufficient]
+    V_ts = V_ts[:n_sufficient, :n_sufficient]
+
+    # recontruct the data in the PCA space to train the network with
+    data_pca_train = U_tr @ S_tr @ V_tr.T
+    data_pca_test = U_ts @ S_ts @ V_ts.T
+
+    # train the NN on the PCA data
+    losses_pca = nn_utilities.bootstrapped_cv(hidden_dims=hidden_dims, data=data_pca_train, targets=y_train, test_data=data_pca_test,
+                                              test_targets=y_test, kfolds=kfolds, epochs=epochs, batch_size=batch_size, n_bootstraps=n_bootstraps,
+                                              bootstrap_dim=bootstrap_dim)
+
+    # train the same NN on the original data
+    losses_no_pca = nn_utilities.bootstrapped_cv(hidden_dims=hidden_dims, data=X_train, targets=y_train, test_data=X_test, test_targets=y_test,
+                                                 kfolds=kfolds, epochs=epochs, batch_size=batch_size, n_bootstraps=n_bootstraps,
+                                                 bootstrap_dim=bootstrap_dim)
+
+    return losses_pca, losses_no_pca
 
 
 if __name__ == '__main__':
