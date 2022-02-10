@@ -52,7 +52,7 @@ def create_nn(hidden_dims: Tuple[int], dropout: float = -1) -> Sequential:
 
 
 def cross_validation(hidden_dims: Tuple[int], data: np.ndarray, targets: np.ndarray, test_data: np.ndarray, test_targets: np.ndarray,
-                     kfolds: int, epochs: int, batch_size: int, dropout: float = -1, model: Sequential = None) -> dict:
+                     kfolds: int, epochs: int, batch_size: int, dropout: float = -1, model = None) -> dict:
     """
     Performs cross validation
     :hidden dims: tuple containing the dimensions of the hidden layers of the mdoel to create
@@ -83,6 +83,7 @@ def cross_validation(hidden_dims: Tuple[int], data: np.ndarray, targets: np.ndar
             model = create_nn(hidden_dims=hidden_dims, dropout=dropout)
         batch_size = batch_size if batch_size is not None else len(tr_data)
         # compile and fit
+        print(f"Training: {model.__class__.__name__}")
         model.compile(optimizer='adam', loss='mse')
         hist = model.fit(x=tr_data, y=tr_targets, epochs=epochs, batch_size=batch_size, validation_data=(val_data, val_targets), callbacks=[early_stop])
         losses['tr'].append(hist.history['loss'][-1])
@@ -94,7 +95,7 @@ def cross_validation(hidden_dims: Tuple[int], data: np.ndarray, targets: np.ndar
 
 
 def bootstrapped_cv(hidden_dims: Tuple[int], data: np.ndarray, targets: np.ndarray, test_data: np.ndarray, test_targets: np.ndarray, kfolds: int,
-                    epochs: int, n_bootstraps: int, bootstrap_dim: int, batch_size: int, dropout: float = -1, model: Sequential = None) -> dict:
+                    epochs: int, n_bootstraps: int, bootstrap_dim: int, batch_size: int, dropout: float = -1, model = None) -> dict:
     """
     Performs bootstrap and k-fold cross validation
     :hidden dims: tuple containing the dimensions of the hidden layers of the mdoel to create
