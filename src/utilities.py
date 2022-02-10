@@ -1,9 +1,8 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 from typing import Union, Tuple
-
-import nn_utilities
 from fd_model_nn import FD_Network
+import nn_utilities
 from nn_utilities import *
 
 
@@ -53,13 +52,16 @@ def read_dataset(path: str, fd_training=False) -> (np.ndarray, np.ndarray):
     return mean_spacing.astype(float), targets.astype(float)
 
 
-def plot_fd_and_original(data_path: str, plot_title: str = "", fd_epochs: int = 50,
-                         test_data=None, test_targets=None, run_eagerly=False, verbose=1):
+def plot_fd_and_original(data_path: str, plot_title: str = "", fd_epochs: int = 50, test_data=None, test_targets=None, run_eagerly=False, verbose=1):
     """
     Plots the observed speeds and the ones predicted by the FD model, depending on the mean spacing
     :param data_path: path of the file containing the data
     :param plot_title: title of the plot
     :param fd_epochs: number of epochs of training for the FD
+    :param test_data: test data
+    :param test_targets: targets for the test data
+    :param run_eagerly: parameter to pass at tensorflow's fit method (used to access some of the model's outputs)
+    :param verbose: level of verbosity to be passed at tensorflow's fit method
     :return fd trained model
     """
     fd_data, fd_targets = read_dataset(data_path, fd_training=True)
@@ -101,7 +103,11 @@ def plot_fd_and_speeds(data_path: str, plot_title: str = "", fd_epochs: int = 50
     :param nn_epochs: number of epochs of training for the NN
     :param hidden_dims: tuple containing the dimensions of the hidden layers of the NN
     :param training_plots: if True, plots the training curves of the FD and NN
-    :return nn model for predicting speeds and model for approximating weidmann
+    :param hidden_activation_func: activation function for the hidden layers
+    :param dropout: value of dropout to add after each Dense layer. If -1, no dropout is added
+    :param run_eagerly: parameter to pass at tensorflow's fit method (used to access some of the model's outputs)
+    :param verbose: level of verbosity to be passed at tensorflow's fit method
+    :return nn model for predicting speeds and model for approximating Weidmann
     """
     fd_data, fd_targets = read_dataset(data_path, fd_training=True)
     nn_data, nn_targets = read_dataset(data_path, fd_training=False)
@@ -201,10 +207,9 @@ def plot_results(results, tr_mean, tr_std, val_mean, val_std, test_mean, test_st
 def _get_data_for_train_both_models(base_path, task_data, train: bool):
     """
     Internal usage function, called from 'train_both_models' to get the training/testing data
-    :param base_path:
-    :param task_data:
-    :param train:
-    :return:
+    :param base_path: path of the directory containing the data
+    :param task_data: name of the task in order to get the correct file (part of the file's path)
+    :param train: if true -> training data; if false -> testing data
     """
     X_t, y_t = None, None
     fd_x_t = None
@@ -238,6 +243,12 @@ def _get_data_for_train_both_models(base_path, task_data, train: bool):
 
 
 def train_both_models(task_train, task_test):
+    """
+    Perform fitting of the FD model and training of the NN
+    :param task_train: name of the task, as part of the path to the correct training data file (see nn_utilities.bootstrapped_cv)
+    :param task_test: name of the task, as part of the path to the correct testing data file (see nn_utilities.bootstrapped_cv)
+    :return: the losses of the NN, the FD fitted on the observed speeds and the losses of the FD fitted on the speeds predicted by the NN
+    """
     base_path = "../data/training_data/"
     X_train, y_train, fd_x_train = _get_data_for_train_both_models(base_path=base_path, task_data=task_train, train=True)
     X_test, y_test, fd_x_test = _get_data_for_train_both_models(base_path=base_path, task_data=task_test, train=False)
@@ -263,117 +274,6 @@ def train_both_models(task_train, task_test):
     model = FD_Network()
     fd_prediction_losses = bootstrapped_cv(hidden_dims=None, data=fd_x_train, targets=fd_nn_prediction_speeds, test_data=fd_x_test,
                                            test_targets=y_test, kfolds=5, epochs=1000, batch_size=32, n_bootstraps=5, bootstrap_dim=5000,
-                                           model=model)
-    return nn_losses, fd_losses, fd_prediction_losses
-
-
-def get_all_result_data(results):
-    tr_mean = []
-    tr_std = []
-    val_mean = []
-    val_std = []
-    test_mean = []
-    test_std = []
-    for key in results.keys():
-        tr_mean.append(results[key]['tr'][0])
-        tr_std.append(results[key]['tr'][1])
-        val_mean.append(results[key]['val'][0])
-        val_std.append(results[key]['val'][1])
-        test_mean.append(results[key]['test'][0])
-        test_std.append(results[key]['test'][1])
-    return tr_mean, tr_std, val_mean, val_std, test_mean, test_std
-
-
-def plot_results(results, tr_mean, tr_std, val_mean, val_std, test_mean, test_std, plot_val=False, title=""):
-    fig, ax = plt.subplots()
-    ax.fill_between(range(len(tr_std)), [tr_mean[i] + tr_std[i] for i in range(len(tr_std))], [tr_mean[i] - tr_std[i] for i in range(len(tr_std))],
-                    alpha=0.2, color='orange')
-    ax.plot(tr_mean, label='training_loss', c='orange')
-    ax.scatter(range(len(tr_mean)), tr_mean, c='orange')
-
-    if plot_val:
-        ax.fill_between(range(len(val_std)), [val_mean[i] + val_std[i] for i in range(len(val_std))],
-                        [val_mean[i] - val_std[i] for i in range(len(val_std))], alpha=0.2)
-        ax.plot(val_mean, label='validation_loss')
-        ax.scatter(range(len(val_mean)), val_mean, c='blue')
-
-    ax.fill_between(range(len(test_std)), [test_mean[i] + test_std[i] for i in range(len(test_std))],
-                    [test_mean[i] - test_std[i] for i in range(len(test_std))], alpha=0.2, color='red')
-    ax.plot(test_mean, label='testing_loss', c='red')
-    ax.scatter(range(len(test_mean)), test_mean, c='red')
-    plt.legend()
-    ax.set_ylabel('MSE')
-    ax.set_xlabel('model conf')
-    ax.set_xticks(range(len(results.keys())), labels=results.keys())
-    plt.title(title)
-    plt.show()
-
-
-def _get_data_for_train_both_models(base_path, task_data, train: bool):
-    """
-    Internal usage function, called from 'train_both_models' to get the training/testing data
-    :param base_path:
-    :param task_data:
-    :param train:
-    :return:
-    """
-    X_t, y_t = None, None
-    fd_x_t = None
-    for data in task_data:
-        path = base_path + f"train_{data}_data"
-        try:
-            f = open(path)
-        except IOError:
-            create_and_save_training_testing_data(data, base_path)
-
-        X_train, y_train, X_test, y_test = read_train_test(data, base_path)
-        if train:
-            X = X_train
-            y = y_train
-        else:
-            X = X_test
-            y = y_test
-        fd_x = X[:, 0].reshape(-1, 1)
-
-        if X_t is None:
-            X_t = X
-            y_t = y
-            fd_x_t = fd_x
-        else:
-            X_t = np.concatenate((X_t, X), axis=0)
-            y_t = np.concatenate((y_t, y), axis=0)
-            fd_x_t = np.concatenate((fd_x_t, fd_x), axis=0)
-
-    X, y, fd_x = X_t, y_t, fd_x_t
-    return X, y, fd_x
-
-
-def train_both_models(task_train, task_test):
-    base_path = "../data/training_data/"
-    X_train, y_train, fd_x_train = _get_data_for_train_both_models(base_path=base_path, task_data=task_train, train=True)
-    X_test, y_test, fd_x_test = _get_data_for_train_both_models(base_path=base_path, task_data=task_test, train=False)
-
-    # train fd
-    model = FD_Network()
-    fd_losses = bootstrapped_cv(hidden_dims=None, data=fd_x_train, targets=y_train, test_data=fd_x_test, test_targets=y_test,
-                                kfolds=5, epochs=1000, batch_size=32, n_bootstraps=15, bootstrap_dim=1000, model=model)
-    # train speed nn
-    hidden_dims = (3,)
-    nn_losses = bootstrapped_cv(hidden_dims=hidden_dims, data=X_train, targets=y_train, test_data=X_test, test_targets=y_test,
-                                kfolds=5, epochs=1000, batch_size=32, n_bootstraps=15, bootstrap_dim=1000)
-
-    # once we have the selection stats, train an nn on the whole train to give predictions needed for FD model training
-    nn = create_nn(hidden_dims, dropout=-1)
-    nn.compile(optimizer='adam', loss='mse')
-    # to stop the computation when model is at its cap
-    callback = EarlyStopping(monitor='loss', patience=10)  # default on val_loss
-    nn.fit(x=X_train, y=y_train, epochs=1000, callbacks=[callback], verbose=0)
-    fd_nn_prediction_speeds = nn.predict(x=X_train)
-
-    # train fd
-    model = FD_Network()
-    fd_prediction_losses = bootstrapped_cv(hidden_dims=None, data=fd_x_train, targets=fd_nn_prediction_speeds, test_data=fd_x_test,
-                                           test_targets=y_test, kfolds=5, epochs=1000, batch_size=32, n_bootstraps=15, bootstrap_dim=1000,
                                            model=model)
     return nn_losses, fd_losses, fd_prediction_losses
 
@@ -404,22 +304,21 @@ def svd(data: Union[np.ndarray, pd.DataFrame], center=False):
 
 
 def train_nn_on_pca_data(base_data_path: str, task: str, energy_perc: float, bootstrap_dim: int, hidden_dims: Tuple[int] = (3,), kfolds: int = 5,
-                         epochs: int = 100, batch_size: int = 32, n_train_data: int = None, n_test_data: int = None, n_bootstraps: int = 5) -> Tuple[
-    dict, dict]:
+                         epochs: int = 100, batch_size: int = 32, n_train_data: int = None, n_test_data: int = None, n_bootstraps: int = 5) -> Tuple[dict, dict]:
     """
-
-    :param base_data_path:
-    :param task:
-    :param energy_perc:
-    :param bootstrap_dim:
-    :param hidden_dims:
-    :param kfolds:
-    :param epochs:
-    :param batch_size:
-    :param n_train_data:
-    :param n_test_data:
-    :param n_bootstraps:
-    :return:
+    Compute PCA and then train the NN in the PCA space
+    :param base_data_path: path of the original data
+    :param task: "corridor" / "bottleneck" with their dimension -> part of the path of the data
+    :param energy_perc: percentage of energy to retain after the PCA
+    :param bootstrap_dim: dimension of the bootstrap subsamples
+    :param hidden_dims: tuple containing the dimensions of the hidden layers of the NN
+    :param kfolds: number of folds for the cross-validation
+    :param epochs: number of epochs
+    :param batch_size: size of the minibatches
+    :param n_train_data: number of samples to consider in the training data (in order to make the PCA faster using less data)
+    :param n_test_data: number of samples to consider in the testing data (in order to make the PCA faster using less data)
+    :param n_bootstraps: number of bootstrap subsamples to perform
+    :return: the losses of the same NN trained in the PCA space and with the original data
     """
     # read and eventually cut the data for a quicker PCA computation
     X_train, y_train, X_test, y_test = nn_utilities.read_train_test(task, base_data_path)

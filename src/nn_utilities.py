@@ -1,5 +1,4 @@
 import typing
-
 import numpy as np
 from typing import Tuple, List
 from sklearn.model_selection import train_test_split
